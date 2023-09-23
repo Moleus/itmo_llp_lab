@@ -1,5 +1,8 @@
 #include "private/storage/page_manager.h"
 
+//TODO: think if it's correct to include private header
+#include "private/storage/page.h"
+
 // Private
 // get page offset by id
 size_t page_manager_get_page_offset(PageManager *self, size_t page_id) {
@@ -7,6 +10,7 @@ size_t page_manager_get_page_offset(PageManager *self, size_t page_id) {
 
     return (size_t) page_id * page_size();
 }
+
 int32_t page_manager_get_next_page_id(PageManager *self) {
     ASSERT_ARG_NOT_NULL(self);
 
@@ -56,7 +60,8 @@ Result page_manager_page_new(PageManager *self, Page *page) {
     RETURN_IF_FAIL(new_page_res, "Failed to create page");
     self->pages_count++;
     // TODO: add page to file
-    Result page_write_res = file_manager_write(self->file_manager, page->offset, page_size(), page);
+    // TODO: check file offset
+    Result page_write_res = file_manager_write(self->file_manager, page->page_header.file_offset, page_size(), page);
     RETURN_IF_FAIL(page_write_res, "Failed to write new page to file");
 
     return OK;
@@ -73,7 +78,7 @@ Result page_manager_page_destroy(PageManager *self, Page *page) {
     return OK;
 }
 
-Result page_manager_write_value(PageManager *self, int32_t page_num, Value value) {
+Result page_manager_write_value(PageManager *self, int32_t page_num, Item value) {
     ASSERT_ARG_NOT_NULL(self);
 
     Page page;

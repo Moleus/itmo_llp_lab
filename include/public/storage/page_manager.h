@@ -1,9 +1,13 @@
 #pragma once
 
+#include <stdbool.h>
 #include "public/util/common.h"
 #include "public/storage/file_manager.h"
 #include "public/storage/page.h"
 
+// PaqeManger - is a top-level structure which provides access
+// to pages and items stored in ram/disk
+// All manipulations with pages and items should be done through PageManager
 typedef struct PageManager PageManager;
 
 Result page_manager_new(PageManager *self, FileManager *file_manager);
@@ -15,3 +19,28 @@ Result page_manager_page_destroy(PageManager *self, Page *page);
 Result page_manager_get_page_by_id(PageManager *self, size_t id, Page *page);
 
 Result page_manager_get_free_page(PageManager *self, Page *page);
+
+typedef struct PageIterator PageIterator;
+// TODO: make private
+Result page_iterator_new(PageManager *page_manager, PageIterator *result);
+
+void page_iterator_destroy(PageIterator *self);
+
+Result page_iterator_next(PageIterator *self, Page *result);
+
+bool page_iterator_has_next(PageIterator *self);
+
+typedef struct ItemIterator ItemIterator;
+
+Result item_iterator_new(PageManager *page_manager, ItemIterator *result);
+
+void item_iterator_destroy(ItemIterator *self);
+
+Result item_iterator_next(ItemIterator *self, Item *result);
+
+bool item_iterator_has_next(ItemIterator *self);
+
+// TODO: can we make this one private?
+Result page_manager_get_pages(PageManager *self, PageIterator *result);
+
+Result page_manager_get_items(PageManager *self, ItemIterator *result);

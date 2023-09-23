@@ -16,3 +16,13 @@
     - делаем mmap на существующую страницу, вместо malloc-а
     - делаем munmap на существующую страницу, вместо free-а???
     - при создании страницы делаем malloc
+  
+
+## Memory management
+- *dirty page* - если данные изменились в странице после загрузки с диска
+  - *cleaning* - запись измененных страниц на диск
+- [Free page queue](https://en.wikipedia.org/wiki/Page_replacement_algorithm) - очередь с пустыми страницами. 
+  - Похожий подход - *free lists* в [slab allocator](https://en.wikipedia.org/wiki/Slab_allocation)
+- *smart pointer*
+- (Memory pool implementation)[https://en.wikipedia.org/wiki/Memory_pool#Simple_memory_pool_implementation]
+- Как связать данные из файла и страницы в оперативной памяти?

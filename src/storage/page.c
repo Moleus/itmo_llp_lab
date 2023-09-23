@@ -2,16 +2,30 @@
 
 #define PAGE_SIZE 4096
 
-Result page_item_new(PageItem *self, size_t id, int32_t size, void *data) {
+
+// implementation of page iterator in C:
+Result page_iterator_new(PageIterator *self, Page *page) {
+    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(page);
+
+    self->page = page;
+    self->current_item_id = 0;
+    self->current_item = NULL;
+    return OK;
+}
+
+
+
+Result page_item_new(Item *self, size_t id, int32_t size, void *data) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_NOT_NULL(data);
 
     self->id = id;
-    self->data = (Value) {.data = data, .len = size, .pos = 0}; // TODO: calc pos
+    self->data = (Item) {.data = data, .size= size, .pos = 0}; // TODO: calc pos
     return OK;
 }
 
-Result page_item_destroy(PageItem *self) {
+Result page_item_destroy(Item *self) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_NOT_NULL(self->data.data, PAGE_ITEM_DATA_IS_NULL);
 

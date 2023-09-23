@@ -11,6 +11,7 @@ typedef enum {
     FAILED_TO_CLOSE_FILE = 3,
     PAGE_ITEM_DATA_IS_NULL = 4,
     NOT_NULL_POINTER_IN_ARGS = 5,
+    FAILED_TO_ALLOCATE_MEMORY = 6,
 } ErrorCodes;
 
 #define ASSERT_ARG_NOT_NULL(arg) check_arg_null_pointer(arg, #arg, __FILE__, __LINE__);
@@ -26,6 +27,7 @@ char *error_descriptions[] = {
         "Failed to close file",
         "Page item data is NULL",
         "Argument is NOT empty",
+        "Failed to allocate memory",
 };
 
 // util method to print error message and description based on error code and exit with code 1
