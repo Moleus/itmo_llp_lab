@@ -34,10 +34,10 @@ size_t page_get_end_position(Page *self) {
  * Allocates new page. Assigns id
  */
 Result page_new(int32_t page_id, Page *self) {
-    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_IS_NULL(self);
 
     self = malloc(sizeof(Page));
-    CHECK_NOT_NULL(self, "Failed to allocate page")
+    RETURN_IF_NULL(self, "Failed to allocate page")
 
     self->page_id = page_id;
     self->offset = page_id * PAGE_SIZE;

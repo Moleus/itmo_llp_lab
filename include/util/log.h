@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <errno.h>
 
 typedef enum {
     DEBUG = 0,
@@ -24,7 +25,11 @@ static void log(LogLevel level, const char *file, int line, const char *message)
     if (log_level >= WARN) {
         out = stderr;
     }
-    fprintf(out, "[%s] [%s:%d]: %s\n", log_level_names[level], file, line, message);
+    if (errno != 0) {
+        fprintf(out, "[%s] [%s:%d]: %s. (errno: %s)\n", log_level_names[level], file, line, message, strerror(errno));
+    } else {
+        fprintf(out, "[%s] [%s:%d]: %s\n", log_level_names[level], file, line, message);
+    }
 }
 
 void log_debug(const char *file, int line, const char *message) {

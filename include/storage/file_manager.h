@@ -1,11 +1,11 @@
 #pragma once
 
-#include "util/result.h"
-#include <stdio.h>
+#include "util/common.h"
 #include <stdlib.h>
+#include "stdint.h"
 
 typedef struct {
-    int64_t signature;
+    int32_t signature;
     size_t size;
     size_t first_free_page_id;
     size_t last_free_page_id;
