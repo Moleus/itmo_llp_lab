@@ -1,6 +1,5 @@
-#include "storage/file.h"
+#include "private/storage/file.h"
 #include <assert.h>
-#include <stdlib.h>
 
 Result file_new(FileState *fs) {
     ASSERT_ARG_IS_NULL(fs);

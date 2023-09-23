@@ -1,5 +1,4 @@
-#include "storage/file_manager.h"
-#include "storage/file.h"
+#include "private/storage/file_manager.h"
 
 Result file_manager_new(FileManager *self) {
     ASSERT_ARG_IS_NULL(self);

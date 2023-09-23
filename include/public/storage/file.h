@@ -1,12 +1,8 @@
 #pragma once
 
-#include <stdbool.h>
-#include "util/common.h"
+#include "public/util/common.h"
 
-typedef struct {
-    FILE *file;
-    bool is_open;
-} FileState;
+typedef struct FileState FileState;
 
 Result file_new(FileState *fs);
 

@@ -1,23 +1,11 @@
 #pragma once
 
-#include "util/common.h"
+#include "public/util/common.h"
 #include <stdlib.h>
-#include "file.h"
 
-typedef struct {
-    int32_t signature;
-    size_t size;
-    size_t first_free_page_id;
-    size_t last_free_page_id;
-    size_t page_count;
-    size_t records_count;
-} FileHeader;
+typedef struct FileHeader FileHeader;
 
-// file object which stores pointer to file
-typedef struct {
-    FileState *file;
-    FileHeader header;
-} FileManager;
+typedef struct FileManager FileManager;
 
 Result file_manager_new(FileManager *self);
 

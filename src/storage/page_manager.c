@@ -1,4 +1,4 @@
-#include "storage/page_manager.h"
+#include "private/storage/page_manager.h"
 
 // Private
 // get page offset by id

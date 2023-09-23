@@ -1,8 +1,4 @@
-#include <stdlib.h>
-#include <string.h>
-#include "util/result.h"
-#include "storage/page.h"
-#include "util/helpers.h"
+#include "private/storage/page.h"
 
 #define PAGE_SIZE 4096
 
