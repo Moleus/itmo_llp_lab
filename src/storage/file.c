@@ -1,19 +1,30 @@
-#include <stdio.h>
+#include "storage/file.h"
+#include <assert.h>
 #include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-#include "util/result.h"
-#include "util/helpers.h"
 
-typedef struct {
-    FILE *file;
-} FileState;
+Result file_new(FileState *fs) {
+    ASSERT_ARG_IS_NULL(fs);
+
+    fs = malloc(sizeof(FileState));
+    fs->is_open = false;
+    RETURN_IF_NULL(fs, "Failed to allocate FileState");
+    return OK;
+}
+
+Result file_destroy(FileState *fs) {
+    ASSERT_ARG_NOT_NULL(fs);
+    assert(fs->is_open == false);
+
+    free(fs);
+    return OK;
+}
 
 Result file_open(FileState *fs, char *filename) {
     ASSERT_ARG_NOT_NULL(fs);
     ASSERT_ARG_NOT_NULL(filename);
+    assert(fs->is_open == false);
 
-    FILE *file = fopen(filename, "r");
+    FILE *file = fopen(filename, "rb");
     if (file == NULL) {
         file = fopen(filename, "w");
         RETURN_IF_NULL(file, "Can't create file");
@@ -24,6 +35,7 @@ Result file_open(FileState *fs, char *filename) {
 
 Result file_close(FileState *fs) {
     ASSERT_ARG_NOT_NULL(fs);
+    assert(fs->is_open == true);
 
     int res = fclose(fs->file);
     if (res != 0) {
@@ -35,6 +47,7 @@ Result file_close(FileState *fs) {
 Result file_write(FileState *fs, void *data, size_t offset, size_t size) {
     ASSERT_ARG_NOT_NULL(fs);
     ASSERT_ARG_NOT_NULL(data);
+    assert(fs->is_open == true);
 
     // TODO: check the cast to long
     int res = fseek(fs->file, (long) offset, SEEK_SET);
@@ -52,6 +65,7 @@ Result file_write(FileState *fs, void *data, size_t offset, size_t size) {
 Result file_read(FileState *fs, void *data, size_t offset, size_t size) {
     ASSERT_ARG_NOT_NULL(fs);
     ASSERT_ARG_NOT_NULL(data);
+    assert(fs->is_open == true);
 
     int res = fseek(fs->file, (long) offset, SEEK_SET);
     if (res != 0) {

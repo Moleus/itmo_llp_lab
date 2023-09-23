@@ -20,7 +20,8 @@ bool result_is_fail__(Result result) {
     return result.status == RES_ERROR;
 }
 
-// requires PACKAGE_NAME to be in the function context
+// TODO: free self memory if fail.
+// Implement auto clean macro on fail
 #define RETURN_IF_FAIL(result, return_error_msg) \
     if (result_is_fail__(result)) {      \
         log_error(__FILE__, __LINE__, result.message);       \

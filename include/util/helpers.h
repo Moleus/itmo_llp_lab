@@ -1,4 +1,8 @@
 #include <errno.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <util/log.h>
+#include <string.h>
 
 typedef enum {
     NULL_POINTER_IN_ARGS = 0,
