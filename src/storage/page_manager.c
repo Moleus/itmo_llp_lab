@@ -39,7 +39,7 @@ Result page_manager_new(PageManager *self, FileManager *file_manager) {
 Result page_manager_destroy(PageManager *self) {
     ASSERT_ARG_NOT_NULL(self);
 
-    // TODO: remove all pages
+    // TODO: remove all pages from memory
     free(self->pages);
     return OK;
 }
@@ -56,6 +56,8 @@ Result page_manager_page_new(PageManager *self, Page *page) {
     RETURN_IF_FAIL(new_page_res, "Failed to create page");
     self->pages_count++;
     // TODO: add page to file
+    Result page_write_res = file_manager_write(self->file_manager, page->offset, page_size(), page);
+    RETURN_IF_FAIL(page_write_res, "Failed to write new page to file");
 
     return OK;
 }
@@ -100,23 +102,6 @@ Result page_manager_get_page_by_id(PageManager *self, size_t id, Page *page) {
     size_t size = page_size();
 
     file_manager_read(self->file_manager, offset, size, page);
-    return OK;
-}
-
-// TODO: it's not page_manager responsibility to read data from page
-Result page_manger_read(PageManager *self, size_t page_id, size_t item_id, Value *data) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(data);
-
-    Page page;
-    Result get_page_res = page_manager_get_page_by_id(self, page_id, &page);
-    RETURN_IF_FAIL(get_page_res, "Failed to get page");
-
-    PageItem item;
-    Result read_res = page_read(&page, item_id, &item);
-    RETURN_IF_FAIL(read_res, "Failed to read data from page");
-    *data = item.data;
-
     return OK;
 }
 

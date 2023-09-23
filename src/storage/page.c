@@ -27,7 +27,7 @@ Result page_item_destroy(PageItem *self) {
 size_t page_get_end_position(Page *self) {
     ASSERT_ARG_NOT_NULL(self);
 
-    return self->offset + PAGE_SIZE;
+    return self->page_header.used_bytes;
 }
 
 /*

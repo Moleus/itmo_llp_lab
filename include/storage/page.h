@@ -37,8 +37,6 @@ typedef struct {
 Result page_header_read(Value *data, size_t offset, PageHeader *header);
 Result page_header_write(Value *data, size_t offset, PageHeader *header);
 
-// How to access file data from page functions?
-// we need to pass file wrapper to page functions
 typedef struct {
     PageHeader page_header;
     // offset from the start of the file where page starts

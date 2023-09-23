@@ -12,6 +12,7 @@ typedef struct {
 // we can't store all pages in memory (>10GiB)
 //    Page *pages;
     FileManager *file_manager;
+    Page *pages;
     size_t pages_count;
 } PageManager;
 
@@ -21,11 +22,7 @@ Result page_manager_destroy(PageManager *self);
 Result page_manager_page_new(PageManager *self, Page *page);
 Result page_manager_page_destroy(PageManager *self, Page *page);
 
-Result page_manager_write_value(PageManager *self, int32_t page_num, Value value);
-
 Result page_manager_get_page_by_id(PageManager *self, size_t id, Page *page);
-
-Result page_manager_read(PageManager *self, size_t page_id, size_t item_id, Value *data);
 
 Result page_manager_get_free_page(PageManager *self, Page *page);
 
