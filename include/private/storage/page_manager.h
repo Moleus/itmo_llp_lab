@@ -26,7 +26,7 @@ struct ItemIterator{
     Item current_item;
 };
 
-int32_t page_manager_get_next_page_id(PageManager *self);
+page_index_t page_manager_get_next_page_id(PageManager *self);
 // Вопрос: где хранить item_id
 
-Result page_manager_get_page_from_ram(PageManager *self, size_t page_id, Page *result);
+Result page_manager_get_page_from_ram(PageManager *self, page_index_t page_id, Page *result);

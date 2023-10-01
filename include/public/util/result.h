@@ -21,7 +21,6 @@ typedef struct {
 // define ERROR macro
 #define ERROR(msg) (Result) {.status = RES_ERROR, .message = msg}
 
-
 static bool result_is_fail__(Result result) {
     return result.status == RES_ERROR;
 }

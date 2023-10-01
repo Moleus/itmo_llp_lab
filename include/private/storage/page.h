@@ -4,10 +4,11 @@
 #include "public/storage/page.h"
 
 struct PageHeader {
-    int32_t page_id;
+    page_index_t page_id;
     int32_t page_size;
+    // offset of this page in file
     int32_t file_offset;
-    int32_t items_count;
+    item_index_t next_item_id;
     // these two fields describe a range of free space [start; end]
     int32_t free_space_start_offset;
     int32_t free_space_end_offset;
@@ -26,11 +27,22 @@ struct Page {
 };
 
 typedef struct ItemMetadata {
-    int32_t id;
-    int32_t offset;
+    item_index_t id;
+    int32_t data_offset;
     int32_t size;
 } ItemMetadata;
 
+typedef struct ItemResult ItemResult;
+struct ItemResult {
+    int32_t metadata_offset_in_page;
+    ItemMetadata metadata;
+    item_index_t item_id;
+};
 
 // payload size
 int32_t page_get_payload_size(int32_t page_size);
+
+
+Result page_add_item(Page *self, Item *item, ItemResult* item_add_result);
+
+Result page_delete_item(Page *self, Item *item);

@@ -21,7 +21,7 @@ Result page_manager_destroy(PageManager *self);
 Result page_manager_page_new(PageManager *self, Page *page);
 Result page_manager_page_destroy(PageManager *self, Page *page);
 
-Result page_manager_read_page(PageManager *self, size_t id, Page *page);
+Result page_manager_read_page(PageManager *self, page_index_t id, Page *result);
 Result page_manager_flush_page(PageManager *self, Page *page);
 
 typedef struct PageIterator PageIterator;
