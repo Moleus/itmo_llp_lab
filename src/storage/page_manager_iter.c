@@ -4,14 +4,14 @@
 #include "private/storage/page.h"
 
 // Page Iterator
-Result page_iterator_new(PageManager *page_manager, PageIterator *result) {
+Result page_iterator_new(PageManager *page_manager, PageIterator **result) {
     ASSERT_ARG_NOT_NULL(page_manager);
     ASSERT_ARG_IS_NULL(result);
 
-    result = malloc(sizeof(PageIterator));
-    result->page_manager = page_manager;
-    result->next_page_id = 0;
-    result->current_page.page_payload = NULL_PAGE;
+    *result = malloc(sizeof(PageIterator));
+    **result = (PageIterator) {.page_manager = page_manager, .next_page_id = 0,
+                               //TODO: check
+                               .current_page = *page_manager->pages};
     return OK;
 }
 
@@ -23,12 +23,12 @@ void page_iterator_destroy(PageIterator *self) {
 bool page_iterator_has_next(PageIterator *self) {
     ASSERT_ARG_NOT_NULL(self);
 
-    return self->next_page_id < self->page_manager->pages_count;
+    return self->next_page_id.id < self->page_manager->pages_count;
 }
 
 Result page_iterator_next(PageIterator *self, Page *result) {
     ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_IS_NULL(result);
+    ASSERT_ARG_NOT_NULL(result);
     if (!page_iterator_has_next(self)) {
         return ERROR("No more pages");
     }
@@ -36,23 +36,21 @@ Result page_iterator_next(PageIterator *self, Page *result) {
     // TODO: check that it works
     Result get_page_res = page_manager_read_page(self->page_manager, self->next_page_id, result);
     RETURN_IF_FAIL(get_page_res, "Failed to get page by id");
-    self->next_page_id++;
+    self->next_page_id.id++;
     self->current_page = *result;
     return OK;
 }
 
 // Item Iterator
-Result item_iterator_new(PageManager *page_manager, ItemIterator *result) {
+Result item_iterator_new(PageManager *page_manager, ItemIterator **result) {
     ASSERT_ARG_NOT_NULL(page_manager);
     ASSERT_ARG_IS_NULL(result);
 
-    result = malloc(sizeof(ItemIterator));
+    *result = malloc(sizeof(ItemIterator));
     PageIterator *page_iterator;
-    Result res = page_manager_get_pages(page_manager, page_iterator);
+    Result res = page_manager_get_pages(page_manager, &page_iterator);
     RETURN_IF_FAIL(res, "Failed to get pages iterator");
-    result->page_iterator = page_iterator;
-    result->current_item = NULL_ITEM;
-    result->current_item_index = 0;
+    **result = (ItemIterator) {.page_iterator = page_iterator, .current_item = NULL_ITEM, .current_item_index = 0};
     return OK;
 }
 
@@ -83,15 +81,16 @@ Result item_iterator_next(ItemIterator *self, Item *result) {
         return ERROR("No more items");
     }
 
-    if (self->current_item_index <= self->page_iterator->current_page.page_header.next_item_id) {
-        // TODO: allocate or what to do with item memory?
-        // здесь мы обращаемся к page_manager и просим у него следующую страницу.
-        // Он уже должен определить - загружена ли она в память, или ее нужно достать с диска
-        int32_t next_page_index = self->page_iterator->current_page.page_header.page_id + 1;
+    if (self->current_item_index.id <= self->page_iterator->current_page.page_header.next_item_id.id) {
+        page_index_t next_page_index = next_page(self->page_iterator->current_page.page_header.page_id);
         PageManager *pm = self->page_iterator->page_manager;
-        Result res = page_manager_read_page(pm, next_page_index, *result);
+        // Здесь мы обращаемся к page_manager и просим у него следующую страницу.
+        // Он уже должен определить - загружена ли она в память, или ее нужно достать с диска
+        Page *page;
+        Result res = page_manager_read_page(pm, next_page_index, page);
         RETURN_IF_FAIL(res, "Failed to read item");
-        self->current_item_index++;
+        //TODO: check increment
+        self->current_item_index.id++;
         self->current_item = *result;
         return OK;
     }
@@ -105,14 +104,14 @@ Result item_iterator_next(ItemIterator *self, Item *result) {
 
 // To top-level function which should be used to get items and pages
 // TODO: do we need to get pages? If not - remove this method
-Result page_manager_get_pages(PageManager *self, PageIterator *result) {
+Result page_manager_get_pages(PageManager *self, PageIterator **result) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_IS_NULL(result);
 
     return page_iterator_new(self, result);
 }
 
-Result page_manager_get_items(PageManager *self, ItemIterator *result) {
+Result page_manager_get_items(PageManager *self, ItemIterator **result) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_IS_NULL(result);
 

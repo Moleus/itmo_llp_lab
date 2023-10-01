@@ -42,7 +42,6 @@ struct ItemResult {
 // payload size
 int32_t page_get_payload_size(int32_t page_size);
 
-
 Result page_add_item(Page *self, Item *item, ItemResult* item_add_result);
 
 Result page_delete_item(Page *self, Item *item);

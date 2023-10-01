@@ -13,24 +13,11 @@ size_t page_manager_get_page_offset(PageManager *self, page_index_t page_id) {
     return (size_t) page_id.id * self->page_size;
 }
 
-page_index_t page_manager_get_next_page_id(PageManager *self) {
-    ASSERT_ARG_NOT_NULL(self);
-
-    return page_id((int32_t) self->pages_count);
-}
-
 page_index_t page_manager_get_last_page_id(PageManager *self) {
     ASSERT_ARG_NOT_NULL(self);
 
     return page_id(self->pages_count - 1);
 }
-
-//Result page_manager_set_next_page_id(PageManager *self, int32_t page_id) {
-//    ASSERT_ARG_NOT_NULL(self);
-//
-//    Page *page;
-//    page_manager_read_page(self, page_id, page);
-//}
 
 // Public
 Result page_manager_new(PageManager *self, FileManager *file_manager) {
@@ -74,31 +61,50 @@ Result page_manager_page_destroy(PageManager *self, Page *page) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_NOT_NULL(page);
 
-    Result destroy_res = page_destroy(page);
-    RETURN_IF_FAIL(destroy_res, "Failed to destroy page");
-
-    return OK;
+    return page_destroy(page);
 }
 
 /*
  * Page should exist in memory or on disk
  * If page doesn't exist in memory then it will be loaded from disk
  */
-Result page_manager_read_page(PageManager *self, page_index_t id, Page *result) {
+Result page_manager_read_page(PageManager *self, page_index_t id, Page *result_page) {
     ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_IS_NULL(result);
+    ASSERT_ARG_IS_NULL(result_page);
 
     if (id.id >= self->pages_count) {
         return ERROR("Page doesn't exist");
     }
-    // check if memory exists in ram
-    Result res = page_manager_get_page_from_ram(self, id, result);
+
+    // check if page exists in ram
+    Result res = page_manager_get_page_from_ram(self, id, result_page);
+    if (res.status == RES_OK) {
+        // page found in ram
+        return OK;
+    }
 
     // pass offset to file_manger and get page
     size_t offset = page_manager_get_page_offset(self, id);
-    size_t size = page_size(result);
 
-    file_manager_read(self->file_manager, offset, size, result);
+    // load from disk
+    // allocate page here
+
+
+    //TODO: fix in progress. don't pass page to file_manager. pass by parts. header, metadata, data
+    Page *page = malloc(sizeof(Page));
+
+    void *data_block = malloc(self->page_size);
+    ASSERT_NOT_NULL(data_block, FAILED_TO_ALLOCATE_MEMORY);
+    PageHeader *header = (PageHeader *) data_block;
+    //TODO: check payload
+    PagePayload *payload = (PagePayload *) (data_block + sizeof(PageHeader));
+    *page = (Page){.page_header = *header, .page_payload = *payload, .page_metadata = ???};
+
+    res = file_manager_read(self->file_manager, offset, self->page_size, data_block);
+    RETURN_IF_FAIL(res, "Failed to read page from file");
+    // add page to ram
+    // page_manager_read_page(self, id, result_page)
+
     return OK;
 }
 
@@ -142,6 +148,18 @@ Result page_manager_get_page_from_ram(PageManager *self, page_index_t page_id, P
         current_page = current_page->page_metadata.next_page;
     }
     return ERROR("Page not found in ram");
+}
+
+Result page_manager_allocate_page(PageManager *self, Page **page) {
+    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_IS_NULL(page);
+
+    *page = malloc(sizeof(Page));
+    //TODO: allocate memory for data block
+    //TODO: set next_page for prev page. next_page is linked list of pages
+    //TODO: extract calucalations
+    PagePayload *payload = malloc(sizeof(self->page_size) - sizeof(PageHeader));
+    return OK;
 }
 
 static size_t convert_to_file_offset(PageManager *self, page_index_t page_id, size_t offset_in_page) {
@@ -196,6 +214,9 @@ Result page_manager_delete_item(PageManager *self, Page *page, Item *item) {
     size_t header_offset_in_file = page->page_header.file_offset;
     res = file_manager_write(self->file_manager, header_offset_in_file, sizeof(PageHeader), &page->page_header);
     RETURN_IF_FAIL(res, "Failed to write page header to file");
+
+    // TODO: implement defragmentation
+    return OK;
 }
 
 Result page_manager_get_item();

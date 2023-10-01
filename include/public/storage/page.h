@@ -63,16 +63,7 @@ Result page_destroy(Page *self);
 
 Result page_item_new(Item *self, size_t id, int32_t size, void *data);
 
-Result page_item_destroy(Item *self);
-
-// get position after the last item in page
-size_t page_get_end_position(Page *self);
-
 int32_t page_get_data_offset();
-
-Result page_read_item(Page *self, item_index_t item_id, Item *item);
-
-Result page_write(Page *self, Item *data);
 
 size_t page_size(Page *self);
 

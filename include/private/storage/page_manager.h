@@ -16,13 +16,13 @@ struct PageManager{
 // Only moves forward to next
 struct PageIterator {
     PageManager *page_manager;
-    size_t next_page_id;
+    page_index_t next_page_id;
     Page current_page;
 };
 
 struct ItemIterator{
     PageIterator *page_iterator;
-    size_t current_item_index;
+    item_index_t current_item_index;
     Item current_item;
 };
 
