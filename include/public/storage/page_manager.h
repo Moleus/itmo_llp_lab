@@ -5,9 +5,14 @@
 #include "public/storage/file_manager.h"
 #include "public/storage/page.h"
 
-// PaqeManger - is a top-level structure which provides access
-// to pages and items stored in ram/disk
-// All manipulations with pages and items should be done through PageManager
+// PaqeManger - is a top-level structure which provides access to pages (only)
+// All manipulations with pages should be done through PageManager
+// PageManager is a cache so if the page doesn't exist in ram then it allocates memory
+/*
+ * iterator uses page_manager to iterate over to find page
+ * when we need to add item we use iterator which iterates over all pages
+ * if iterator doesn't find free space then it creates new one
+ */
 typedef struct PageManager PageManager;
 
 Result page_manager_new(PageManager *self, FileManager *file_manager);
@@ -16,11 +21,11 @@ Result page_manager_destroy(PageManager *self);
 Result page_manager_page_new(PageManager *self, Page *page);
 Result page_manager_page_destroy(PageManager *self, Page *page);
 
-Result page_manager_get_page_by_id(PageManager *self, size_t id, Page *page);
-
-Result page_manager_get_free_page(PageManager *self, Page *page);
+Result page_manager_read_page(PageManager *self, size_t id, Page *page);
+Result page_manager_flush_page(PageManager *self, Page *page);
 
 typedef struct PageIterator PageIterator;
+
 // TODO: make private
 Result page_iterator_new(PageManager *page_manager, PageIterator *result);
 

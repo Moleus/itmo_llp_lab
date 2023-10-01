@@ -1,11 +1,11 @@
 #include "private/storage/file.h"
 #include <assert.h>
 
-Result file_new(FileState *fs) {
-    ASSERT_ARG_IS_NULL(fs);
+Result file_new(FileState **fs) {
+    ASSERT_ARG_IS_NULL(*fs);
 
-    fs = malloc(sizeof(FileState));
-    fs->is_open = false;
+    *fs = malloc(sizeof(FileState));
+    (*fs)->is_open = false;
     RETURN_IF_NULL(fs, "Failed to allocate FileState");
     return OK;
 }
@@ -18,17 +18,15 @@ Result file_destroy(FileState *fs) {
     return OK;
 }
 
-Result file_open(FileState *fs, char *filename) {
+Result file_open(FileState *fs, const char *filename) {
     ASSERT_ARG_NOT_NULL(fs);
     ASSERT_ARG_NOT_NULL(filename);
     assert(fs->is_open == false);
 
-    FILE *file = fopen(filename, "rb");
-    if (file == NULL) {
-        file = fopen(filename, "w");
-        RETURN_IF_NULL(file, "Can't create file");
-    }
+    FILE *file = fopen(filename, "a+");
+    RETURN_IF_NULL(file, "Can't open file");
     fs->file = file;
+    fs->is_open = true;
     return OK;
 }
 
@@ -40,6 +38,7 @@ Result file_close(FileState *fs) {
     if (res != 0) {
         return ERROR("Failed to close file");
     }
+    fs->is_open = false;
     return OK;
 }
 
@@ -75,4 +74,10 @@ Result file_read(FileState *fs, void *data, size_t offset, size_t size) {
         return ERROR("Failed to read from file");
     }
     return OK;
+}
+
+bool file_is_open(FileState *fs) {
+    ASSERT_ARG_NOT_NULL(fs);
+
+    return fs->is_open;
 }

@@ -1,16 +1,26 @@
 #include "private/storage/file_manager.h"
 
-Result file_manager_new(FileManager *self) {
-    ASSERT_ARG_IS_NULL(self);
+Result file_manager_new(FileManager **dest) {
+    ASSERT_ARG_IS_NULL(*dest);
 
-    self = malloc(sizeof(FileManager));
-    RETURN_IF_NULL(self, "Failed to allocate file manager");
-    FileState *fs;
-    Result res = file_new(fs);
+    *dest = malloc(sizeof(FileManager));
+    RETURN_IF_NULL(dest, "Failed to allocate file manager");
+    FileState *fs = NULL;
+    Result res = file_new(&fs);
     // TODO: free self memory if fail.
     // Implement auto clean macro on fail
     RETURN_IF_FAIL(res, "Failed to allocate FileState");
-    self->file = fs;
+    // fill dest with all fields in structure
+    (*dest)->file = fs;
+    (*dest)->header = (FileHeader) {
+        .signature = 0,
+        .size = 0,
+        .first_free_page_id = 0,
+        .last_free_page_id = 0,
+        .page_count = 0,
+        .records_count = 0
+    };
+
     return OK;
 }
 

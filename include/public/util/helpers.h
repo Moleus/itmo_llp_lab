@@ -1,8 +1,10 @@
+#pragma once
+
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <util/log.h>
 #include <string.h>
+#include "log.h"
 
 typedef enum {
     NULL_POINTER_IN_ARGS = 0,
@@ -20,7 +22,7 @@ typedef enum {
 #define RETURN_IF_NULL(arg, err_msg) if (arg == NULL) { return ERROR(err_msg); }
 
 // enum items descriptions map
-char *error_descriptions[] = {
+static const char *error_descriptions[] = {
         "NULL pointer in arguments",
         "File not found",
         "Failed to create file",
@@ -31,7 +33,7 @@ char *error_descriptions[] = {
 };
 
 // util method to print error message and description based on error code and exit with code 1
-void exit_with_msg(ErrorCodes error_code) {
+static void exit_with_msg(ErrorCodes error_code) {
     if (errno != 0) {
         printf("Error: %s. Caused by %s\n", strerror(errno), error_descriptions[error_code]);
     }
@@ -40,26 +42,28 @@ void exit_with_msg(ErrorCodes error_code) {
 
 static void exit_with_msg_arg(ErrorCodes error_code, const char *details, const char* file, int line) {
     // TODO: check that it's legal
-    char *buf = NULL;
     if (errno != 0) {
-        sprintf(buf,"Error: %s. Caused by %s\n", error_descriptions[error_code], strerror(errno));
+        const char* format = "Error: %s. Caused by %s\n";
+        char buf[strlen(format) + strlen(error_descriptions[error_code]) + strlen(strerror(errno)) + 1];
+        sprintf(buf, format, error_descriptions[error_code], strerror(errno));
         log_error(file, line, buf);
     } else {
-        sprintf(buf,"Error: %s. Caused by %s\n", error_descriptions[error_code], strerror(errno));
+        const char* format = "Error: %s. Details: %s\n";
+        char buf[strlen(format) + strlen(error_descriptions[error_code]) + strlen(details) + 1];
+        sprintf(buf, format, error_descriptions[error_code], details);
         log_error(file, line, buf);
-        printf("Error: %s. Details: %s\n", error_descriptions[error_code], details);
     }
 
     exit(1);
 }
 
-void check_arg_null_pointer(void *arg, const char* arg_name, const char* file, int line) {
+static void check_arg_null_pointer(const void *arg, const char* arg_name, const char* file, int line) {
     if (arg == NULL) {
         exit_with_msg_arg(NULL_POINTER_IN_ARGS, arg_name, file, line);
     }
 }
 
-void check_arg_is_null_pointer(void *arg, const char* arg_name, const char* file, int line) {
+static void check_arg_is_null_pointer(const void *arg, const char* arg_name, const char* file, int line) {
     if (arg != NULL) {
         exit_with_msg_arg(NOT_NULL_POINTER_IN_ARGS, arg_name, file, line);
     }

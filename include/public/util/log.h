@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdio.h>
 #include <errno.h>
 
@@ -10,19 +12,19 @@ typedef enum {
 
 extern unsigned char log_level;
 
-char *log_level_names[] = {
+static const char *log_level_names[] = {
         "DEBUG",
         "INFO",
         "WARN",
         "ERROR",
 };
 
-static void log(LogLevel level, const char *file, int line, const char *message) {
+static void LOG(LogLevel level, const char *file, int line, const char *message) {
     if (log_level > level) {
         return;
     }
     FILE *out = stdout;
-    if (log_level >= WARN) {
+    if (level >= WARN) {
         out = stderr;
     }
     if (errno != 0) {
@@ -32,18 +34,18 @@ static void log(LogLevel level, const char *file, int line, const char *message)
     }
 }
 
-void log_debug(const char *file, int line, const char *message) {
-    log(DEBUG, file, line, message);
+static void log_debug(const char *file, int line, const char *message) {
+    LOG(DEBUG, file, line, message);
 }
 
-void log_info(const char *file, int line, const char *message) {
-    log(INFO, file, line, message);
+static void log_info(const char *file, int line, const char *message) {
+    LOG(INFO, file, line, message);
 }
 
-void log_warn(const char *file, int line, const char *message) {
-    log(WARN, file, line, message);
+static void log_warn(const char *file, int line, const char *message) {
+    LOG(WARN, file, line, message);
 }
 
-void log_error(const char *file, int line, const char *message) {
-    log(ERROR, file, line, message);
+static void log_error(const char *file, int line, const char *message) {
+    LOG(ERROR, file, line, message);
 }

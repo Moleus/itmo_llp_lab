@@ -2,7 +2,7 @@
 
 #include "public/util/common.h"
 
-// stored in file
+// Reference to an item payload in a file
 typedef struct Item {
     void *data;
     int32_t size;
@@ -29,7 +29,7 @@ static inline bool is_null_page(PagePayload page) {
     return page.bytes == NULL;
 }
 
-Result page_new(int32_t page_id, Page *self);
+Result page_new(int32_t page_id, int32_t page_size, Page *self);
 
 Result page_destroy(Page *self);
 
@@ -48,6 +48,6 @@ Result page_write(Page *self, Item *data);
 
 Result page_add_item(Page *self, Item *data);
 
-size_t page_size();
+size_t page_size(Page *self);
 
 // TODO: implement item+metadata addition to page

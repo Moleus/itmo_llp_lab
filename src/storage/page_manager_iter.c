@@ -3,7 +3,6 @@
 //TODO: think if it's correct to include private header
 #include "private/storage/page.h"
 
-
 // Page Iterator
 Result page_iterator_new(PageManager *page_manager, PageIterator *result) {
     ASSERT_ARG_NOT_NULL(page_manager);
@@ -12,7 +11,7 @@ Result page_iterator_new(PageManager *page_manager, PageIterator *result) {
     result = malloc(sizeof(PageIterator));
     result->page_manager = page_manager;
     result->next_page_id = 0;
-    result->current_page = NULL_PAGE;
+    result->current_page.page_payload = NULL_PAGE;
     return OK;
 }
 
@@ -34,14 +33,11 @@ Result page_iterator_next(PageIterator *self, Page *result) {
         return ERROR("No more pages");
     }
 
-    // TODO: change from null pointer to alloc
-    Page page;
-    Result get_page_res = page_manager_get_page_by_id(self->page_manager, self->next_page_id, &page);
+    // TODO: check that it works
+    Result get_page_res = page_manager_read_page(self->page_manager, self->next_page_id, result);
     RETURN_IF_FAIL(get_page_res, "Failed to get page by id");
     self->next_page_id++;
-    self->current_page = page;
-    // TODO: fix. memory is deallocated on function return
-    result = &page;
+    self->current_page = *result;
     return OK;
 }
 
