@@ -23,6 +23,7 @@ Result page_new(page_index_t page_id, int32_t page_size, Page **result) {
     PageHeader header = {
             .page_id = page_id,
             .file_offset = (int32_t) page_id.id * page_size,
+            .next_item_id = 0,
             .free_space_start_offset = HEADER_SIZE,
             .free_space_end_offset = page_size
     };

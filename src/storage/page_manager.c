@@ -68,9 +68,9 @@ Result page_manager_page_destroy(PageManager *self, Page *page) {
  * Page should exist in memory or on disk
  * If page doesn't exist in memory then it will be loaded from disk
  */
-Result page_manager_read_page(PageManager *self, page_index_t id, Page *result_page) {
+Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_page) {
     ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_IS_NULL(result_page);
+    ASSERT_ARG_IS_NULL(*result_page);
 
     if (id.id >= self->pages_count) {
         return ERROR("Page doesn't exist");
@@ -118,22 +118,8 @@ Result page_manager_flush_page(PageManager *self, Page *page) {
     return OK;
 }
 
-/*
- * Allocates new page.
- */
-//Result page_manager_get_free_page(PageManager *self, Page *page) {
-//    ASSERT_ARG_NOT_NULL(self);
-//    ASSERT_ARG_IS_NULL(page);
-//
-//    int32_t next_page_id = page_manager_get_next_page_id(self);
-//    Result new_page_res = page_manager_page_new(self, page);
-//    RETURN_IF_FAIL(new_page_res, "Failed to create new page");
-//
-//    return OK;
-//}
-
 // Private
-Result page_manager_get_page_from_ram(PageManager *self, page_index_t page_id, Page *result) {
+Result page_manager_get_page_from_ram(PageManager *self, page_index_t page_id, Page **result) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_IS_NULL(result);
 
@@ -141,7 +127,7 @@ Result page_manager_get_page_from_ram(PageManager *self, page_index_t page_id, P
     Page* current_page = self->pages;
     for (size_t i = 0; i < self->pages_in_memory; i++) {
         if (current_page->page_header.page_id.id == page_id.id) {
-            *result = *current_page;
+            *result = current_page;
             return OK;
         }
         current_page = current_page->page_metadata.next_page;

@@ -5,12 +5,13 @@
 
 // in-memory objects
 struct PageManager{
-// we can't store all pages in memory (>10GiB)
-//    Page *pages;
     FileManager *file_manager;
     int32_t page_size;
     Page *pages;
+    // represents amount of pages loaded in ram
     int32_t pages_in_memory;
+    //TODO: check usage of pages_count.
+    // represents total amount of pages in file
     size_t pages_count;
 };
 
@@ -18,16 +19,16 @@ struct PageManager{
 struct PageIterator {
     PageManager *page_manager;
     page_index_t next_page_id;
-    Page current_page;
+    Page *current_page;
 };
 
 struct ItemIterator{
     PageIterator *page_iterator;
     item_index_t current_item_index;
-    Item current_item;
+    Item *current_item;
 };
 
 page_index_t page_manager_get_next_page_id(PageManager *self);
 // Вопрос: где хранить item_id
 
-Result page_manager_get_page_from_ram(PageManager *self, page_index_t page_id, Page *result);
+Result page_manager_get_page_from_ram(PageManager *self, page_index_t page_id, Page **result);

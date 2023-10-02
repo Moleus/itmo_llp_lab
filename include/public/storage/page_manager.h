@@ -21,7 +21,7 @@ Result page_manager_destroy(PageManager *self);
 Result page_manager_page_new(PageManager *self, Page *page);
 Result page_manager_page_destroy(PageManager *self, Page *page);
 
-Result page_manager_read_page(PageManager *self, page_index_t id, Page *result_page);
+Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_page);
 Result page_manager_flush_page(PageManager *self, Page *page);
 
 typedef struct PageIterator PageIterator;
@@ -31,7 +31,7 @@ Result page_iterator_new(PageManager *page_manager, PageIterator **result);
 
 void page_iterator_destroy(PageIterator *self);
 
-Result page_iterator_next(PageIterator *self, Page *result);
+Result page_iterator_next(PageIterator *self, Page **result);
 
 bool page_iterator_has_next(PageIterator *self);
 
@@ -41,7 +41,7 @@ Result item_iterator_new(PageManager *page_manager, ItemIterator **result);
 
 void item_iterator_destroy(ItemIterator *self);
 
-Result item_iterator_next(ItemIterator *self, Item *result);
+Result item_iterator_next(ItemIterator *self, Item **result);
 
 bool item_iterator_has_next(ItemIterator *self);
 
