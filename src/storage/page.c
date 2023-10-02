@@ -11,14 +11,14 @@ int32_t page_get_payload_size(int32_t page_size) {
  * It doesn't have access to disk
  * Allocates new page. Assigns id
  */
-Result page_new(page_index_t page_id, int32_t page_size, Page *self) {
-    ASSERT_ARG_IS_NULL(self);
+Result page_new(page_index_t page_id, int32_t page_size, Page **result) {
+    ASSERT_ARG_IS_NULL(result);
 
     // TODO: rethink payload allocation
     u_int8_t *payload = malloc(page_get_payload_size(page_size));
     RETURN_IF_NULL(payload, "Failed to allocate page payload");
-    self = malloc(sizeof(Page));
-    RETURN_IF_NULL(self, "Failed to allocate page")
+    result = malloc(sizeof(Page));
+    RETURN_IF_NULL(result, "Failed to allocate page")
 
     PageHeader header = {
             .page_id = page_id,
@@ -26,8 +26,9 @@ Result page_new(page_index_t page_id, int32_t page_size, Page *self) {
             .free_space_start_offset = HEADER_SIZE,
             .free_space_end_offset = page_size
     };
-    self->page_header = header;
-    self->page_payload.bytes = payload;
+
+    (*result)->page_header = header;
+    (*result)->page_payload.bytes = payload;
     return OK;
 }
 

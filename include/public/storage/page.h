@@ -57,7 +57,7 @@ static inline bool is_null_page(PagePayload page) {
     return page.bytes == NULL;
 }
 
-Result page_new(page_index_t page_id, int32_t page_size, Page *self);
+Result page_new(page_index_t page_id, int32_t page_size, Page **result);
 
 Result page_destroy(Page *self);
 

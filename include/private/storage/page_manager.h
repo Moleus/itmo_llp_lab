@@ -8,8 +8,9 @@ struct PageManager{
 // we can't store all pages in memory (>10GiB)
 //    Page *pages;
     FileManager *file_manager;
-    size_t page_size;
+    int32_t page_size;
     Page *pages;
+    int32_t pages_in_memory;
     size_t pages_count;
 };
 

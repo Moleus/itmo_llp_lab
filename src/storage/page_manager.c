@@ -88,22 +88,21 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page *result_p
 
     // load from disk
     // allocate page here
+    Page *page;
+    res = page_new(id, self->page_size, &page);
+    RETURN_IF_FAIL(res, "Failed to create page");
 
+    // read header
+    res = file_manager_read(self->file_manager, offset, sizeof(PageHeader), page);
+    RETURN_IF_FAIL(res, "Failed to read page header from file")
 
-    //TODO: fix in progress. don't pass page to file_manager. pass by parts. header, metadata, data
-    Page *page = malloc(sizeof(Page));
+    // read payload
+    res = file_manager_read(self->file_manager, offset + sizeof(PageHeader), page_get_payload_size(self->page_size), page->page_payload.bytes);
+    RETURN_IF_FAIL(res, "Failed to read page payload from file");
 
-    void *data_block = malloc(self->page_size);
-    ASSERT_NOT_NULL(data_block, FAILED_TO_ALLOCATE_MEMORY);
-    PageHeader *header = (PageHeader *) data_block;
-    //TODO: check payload
-    PagePayload *payload = (PagePayload *) (data_block + sizeof(PageHeader));
-    *page = (Page){.page_header = *header, .page_payload = *payload, .page_metadata = ???};
-
-    res = file_manager_read(self->file_manager, offset, self->page_size, data_block);
-    RETURN_IF_FAIL(res, "Failed to read page from file");
-    // add page to ram
-    // page_manager_read_page(self, id, result_page)
+    self->pages_in_memory++;
+    // TODO: don't forget about this page in memory
+    self->pages->page_metadata.next_page = page;
 
     return OK;
 }
@@ -140,7 +139,7 @@ Result page_manager_get_page_from_ram(PageManager *self, page_index_t page_id, P
 
     // for each page in pages
     Page* current_page = self->pages;
-    for (size_t i = 0; i < self->pages_count; i++) {
+    for (size_t i = 0; i < self->pages_in_memory; i++) {
         if (current_page->page_header.page_id.id == page_id.id) {
             *result = *current_page;
             return OK;
@@ -148,18 +147,6 @@ Result page_manager_get_page_from_ram(PageManager *self, page_index_t page_id, P
         current_page = current_page->page_metadata.next_page;
     }
     return ERROR("Page not found in ram");
-}
-
-Result page_manager_allocate_page(PageManager *self, Page **page) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_IS_NULL(page);
-
-    *page = malloc(sizeof(Page));
-    //TODO: allocate memory for data block
-    //TODO: set next_page for prev page. next_page is linked list of pages
-    //TODO: extract calucalations
-    PagePayload *payload = malloc(sizeof(self->page_size) - sizeof(PageHeader));
-    return OK;
 }
 
 static size_t convert_to_file_offset(PageManager *self, page_index_t page_id, size_t offset_in_page) {
