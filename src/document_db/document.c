@@ -26,6 +26,8 @@ Result document_persist_new_node(Document *self, Node *node) {
 }
 
 Result document_add_root_node(Document *self, Node *root) {
+    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(root);
     // check that we have only 1 root node in file
     // if we have 1 root node, then return error
     // if we have 0 root nodes, then create new root node
@@ -63,6 +65,8 @@ Result document_add_child_node(Document *self, Node * current_node) {
 
 Result document_add_node(Document *self, CreateNodeRequest *request, Node *result) {
     ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(request);
+    ASSERT_ARG_NOT_NULL(result);
 
     // if parent node is null, then this is root node. Then check that we have only 1 root node in file
     // if parent node is not null, then check that it exists in file
@@ -114,6 +118,8 @@ Result document_delete_node(Document *self, DeleteNodeRequest *request) {
 
 // --- UPDATE NODE ---
 Result document_update_node(Document *self, UpdateNodeRequest *request) {
+    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(request);
     // delete + add
 
     DeleteNodeRequest delete_request = {
@@ -127,5 +133,75 @@ Result document_update_node(Document *self, UpdateNodeRequest *request) {
     RETURN_IF_FAIL(res, "failed to delete node while updating");
     res = document_add_node(self, &create_request, request->node);
     RETURN_IF_FAIL(res, "failed to add node while updating");
+    return OK;
+}
+
+// --- ADD MULTIPLE NODES ---
+Result document_add_bulk_nodes(Document *self, CreateMultipleNodesRequest *request, CreateMultipleNodesResult *result) {
+    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(request);
+    ASSERT_ARG_NOT_NULL(result);
+
+    if (request->count == 0) {
+        return ERROR("Bulk add, empty request");
+    }
+
+    ItemIterator *items_it = page_manager_get_items(self->page_manager);
+    while (item_iterator_has_next(items_it)) {
+        Item *item;
+        Result get_item_res = item_iterator_next(items_it, &item);
+        RETURN_IF_FAIL(get_item_res, "failed to bulk add node");
+        Node *tmp_node = item->payload.data;
+        if (node_id_eq(tmp_node->id, request->parent)) {
+            // found parent node. Ok. Adding new
+            result->count = request->count;
+            for (size_t i = 0; i < request->count; i++) {
+                Node *node = &result->node[i];
+                node->value = request->values[i];
+                node->parent_id = request->parent;
+                Result res = document_persist_new_node(self, node);
+                RETURN_IF_FAIL(res, "failed to bulk add node");
+            }
+            return OK;
+        }
+    }
+    // didn't find parent node
+    return ERROR("Parent node doesn't exist in document tree");
+}
+
+// --- GET ALL CHILDREN ---
+Result document_get_all_children(Document *self, GetAllChildrenRequest* request, GetAllChildrenResult *result) {
+    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(request);
+    ASSERT_ARG_NOT_NULL(result);
+
+    ItemIterator *items_it = page_manager_get_items(self->page_manager);
+
+    size_t count = 0;
+    while (item_iterator_has_next(items_it)) {
+        Item *item;
+        Result get_item_res = item_iterator_next(items_it, &item);
+        RETURN_IF_FAIL(get_item_res, "failed to bulk add node");
+        Node *tmp_node = item->payload.data;
+        if (node_id_eq(tmp_node->parent_id, request->node->id)) {
+            count++;
+        }
+    }
+    result->count = count;
+    if (count == 0) {
+        return OK;
+    }
+    Node nodes[count];
+    size_t i = 0;
+    while (item_iterator_has_next(items_it)) {
+        Item *item;
+        Result get_item_res = item_iterator_next(items_it, &item);
+        RETURN_IF_FAIL(get_item_res, "failed to bulk add node");
+        Node *tmp_node = item->payload.data;
+        if (node_id_eq(tmp_node->parent_id, request->node->id)) {
+            nodes[i++] = *tmp_node;
+        }
+    }
+    // didn't find parent node
     return OK;
 }

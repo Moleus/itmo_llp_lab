@@ -26,14 +26,24 @@ typedef struct {
 } DeleteNodeRequest;
 
 typedef struct {
-    Node *node;
-    bool (*condition)(Node *);
-} FindNodeRequest;
+    node_id_t parent;
+    size_t count;
+    NodeValue values[];
+} CreateMultipleNodesRequest;
 
 typedef struct {
-    Node *nodes;
-    size_t nodes_count;
-} GetAllNodesResult;
+    size_t count;
+    Node node[];
+} CreateMultipleNodesResult;
+
+typedef struct {
+    Node *node;
+} GetAllChildrenRequest;
+
+typedef struct {
+    size_t count;
+    Node nodes[];
+} GetAllChildrenResult;
 
 Result document_new(Document *self);
 
@@ -41,10 +51,10 @@ Result document_destroy(Document *self);
 
 Result document_add_node(Document *self, CreateNodeRequest *request, Node *result);
 
+Result document_add_bulk_nodes(Document *self, CreateMultipleNodesRequest *request, CreateMultipleNodesResult *result);
+
 Result document_delete_node(Document *self, DeleteNodeRequest *request);
 
 Result document_update_node(Document *self, UpdateNodeRequest *request);
 
-Result document_find_node(Document *self, FindNodeRequest *request, Node *result);
-
-Result document_get_all_nodes(Document *self, GetAllNodesResult *result);
+Result document_get_all_children(Document *self, GetAllChildrenRequest *request, GetAllChildrenResult *result);
