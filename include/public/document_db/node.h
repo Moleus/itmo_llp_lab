@@ -25,8 +25,26 @@ typedef struct {
 } NodeValue;
 
 typedef struct {
-    size_t id;
-    struct Node *parent_node;
+    u_int32_t page_id;
+    u_int32_t item_id;
+} node_id_t;
+
+static const node_id_t ROOT_NODE_ID = {0, 0};
+inline static bool is_root_node(node_id_t node_id) {
+    return node_id.page_id == 0 && node_id.item_id == 0;
+}
+
+inline static bool is_null_node(node_id_t node_id) {
+    return node_id.page_id == -1 && node_id.item_id == -1;
+}
+
+inline static bool node_id_eq(node_id_t node_id1, node_id_t node_id2) {
+    return node_id1.page_id == node_id2.page_id && node_id1.item_id == node_id2.item_id;
+}
+
+typedef struct {
+    node_id_t id;
+    node_id_t parent_id;
     NodeValue value;
 } Node;
 

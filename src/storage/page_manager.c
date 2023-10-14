@@ -72,7 +72,7 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_
     ASSERT_ARG_IS_NULL(*result_page);
 
     if (id.id >= self->pages_count) {
-        return ERROR("Page doesn't exist");
+        ABORT_EXIT(INTERNAL_LIB_ERROR, "Page doesn't exist");
     }
 
     // check if page exists in ram
@@ -87,9 +87,7 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_
 
     // load from disk
     // allocate page here
-    Page *page;
-    res = page_new(id, self->page_size);
-    RETURN_IF_FAIL(res, "Failed to create page");
+    Page *page = page_new(id, self->page_size);
 
     // read header
     res = file_manager_read(self->file_manager, offset, sizeof(PageHeader), page);
@@ -138,18 +136,17 @@ static size_t convert_to_file_offset(PageManager *self, page_index_t page_id, si
     return page_manager_get_page_offset(self, page_id) + offset_in_page;
 }
 
-Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload) {
+Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload, ItemResult *item_add_result) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_NOT_NULL(page);
 
     // persist in memory
-    ItemResult item_add_result;
-    Result res = page_add_item(page, payload, &item_add_result);
+    Result res = page_add_item(page, payload, item_add_result);
     RETURN_IF_FAIL(res, "Failed to add item to page in memory");
 
-    ItemMetadata metadata = item_add_result.metadata;
-    int32_t metadata_offset = item_add_result.metadata_offset_in_page;
-    int32_t data_offset = item_add_result.metadata.data_offset;
+    ItemMetadata metadata = item_add_result->metadata;
+    int32_t metadata_offset = item_add_result->metadata_offset_in_page;
+    int32_t data_offset = item_add_result->metadata.data_offset;
 
     // persist metadata on disk
     size_t metadata_offset_in_file = convert_to_file_offset(self, page->page_header.page_id, metadata_offset);

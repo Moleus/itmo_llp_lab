@@ -13,7 +13,7 @@ typedef struct {
 
 typedef struct {
     NodeValue value;
-    Node *parent;
+    node_id_t parent;
 } CreateNodeRequest;
 
 typedef struct {
@@ -27,7 +27,6 @@ typedef struct {
 
 typedef struct {
     Node *node;
-
     bool (*condition)(Node *);
 } FindNodeRequest;
 
