@@ -16,11 +16,11 @@ Result document_persist_new_node(Document *self, Node *node) {
     Result res = page_manager_get_page_for_data(self->page_manager, itemPayload, &page);
     RETURN_IF_FAIL(res, "failed to persist new data");
 
-    ItemResult item_result;
+    ItemAddResult item_result;
     res = page_manager_put_item(self->page_manager, page, itemPayload, &item_result);
     RETURN_IF_FAIL(res, "failed to persist new data");
 
-    node->id = (node_id_t ) {.page_id = page->page_header.page_id.id, .item_id = item_result.item_id.id};
+    node->id = (node_id_t ) {.page_id = page->page_header.page_id.id, .item_id = item_result.metadata.item_id.id};
 
     return OK;
 }

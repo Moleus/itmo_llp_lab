@@ -48,7 +48,8 @@ Result page_manager_page_new(PageManager *self, Page **page) {
     *page = page_new(next_id, self->page_size);
     self->pages_count++;
     // write to file
-    Result page_write_res = file_manager_write(self->file_manager, (*page)->page_header.file_offset, self->page_size, page);
+    Result page_write_res = file_manager_write(self->file_manager, (*page)->page_header.file_offset, self->page_size,
+                                               page);
     // TODO: free page if fail
     RETURN_IF_FAIL(page_write_res, "Failed to write new page to file");
 
@@ -94,7 +95,8 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_
     RETURN_IF_FAIL(res, "Failed to read page header from file")
 
     // read payload
-    res = file_manager_read(self->file_manager, offset + sizeof(PageHeader), page_get_payload_size(self->page_size), page->page_payload.bytes);
+    res = file_manager_read(self->file_manager, offset + sizeof(PageHeader), page_get_payload_size(self->page_size),
+                            page->page_payload.bytes);
     RETURN_IF_FAIL(res, "Failed to read page payload from file");
 
     self->pages_in_memory++;
@@ -121,7 +123,7 @@ Result page_manager_get_page_from_ram(PageManager *self, page_index_t page_id, P
     ASSERT_ARG_IS_NULL(result);
 
     // for each page in pages
-    Page* current_page = self->pages;
+    Page *current_page = self->pages;
     for (size_t i = 0; i < self->pages_in_memory; i++) {
         if (current_page->page_header.page_id.id == page_id.id) {
             *result = current_page;
@@ -136,13 +138,33 @@ static size_t convert_to_file_offset(PageManager *self, page_index_t page_id, si
     return page_manager_get_page_offset(self, page_id) + offset_in_page;
 }
 
-Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload, ItemResult *item_add_result) {
+Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload, ItemAddResult *item_add_result) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_NOT_NULL(page);
 
     // persist in memory
     Result res = page_add_item(page, payload, item_add_result);
     RETURN_IF_FAIL(res, "Failed to add item to page in memory");
+
+    // if we don't have enough space in page then we need to allocate new page and place left data there
+    if (!item_add_result->write_status.complete) {
+        //TODO: we have to modify metadata to set continues_on_page
+        ItemAddResult free_page_item_add_result;
+        Page *free_page = NULL;
+        res = page_manager_page_new(self, &free_page);
+        // !!! update current_free page. Forget about the old one.
+        self->current_free_page = free_page;
+        RETURN_IF_FAIL(res, "Failed to allocate one more page for large payload")
+        ItemPayload payload_to_write = {
+                .data = payload.data + item_add_result->write_status.bytes_left,
+                .size = item_add_result->write_status.bytes_left
+        };
+        res = page_manager_put_item(self, free_page, payload_to_write, &free_page_item_add_result);
+        ABORT_IF_FAIL(res, "Failed to write part of large payload to file")
+
+        // TODO: !!! FUCKING IMPORTANT !!! check that we set next page correctly inside recursion
+        item_add_result->metadata.continues_on_page = free_page->page_header.page_id;
+    }
 
     ItemMetadata metadata = item_add_result->metadata;
     int32_t metadata_offset = item_add_result->metadata_offset_in_page;
@@ -151,7 +173,7 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
     // persist metadata on disk
     size_t metadata_offset_in_file = convert_to_file_offset(self, page->page_header.page_id, metadata_offset);
     res = file_manager_write(self->file_manager, metadata_offset_in_file, ITEM_METADATA_SIZE,
-                                    (void *) &metadata);
+                             (void *) &metadata);
     //TODO: think about operation rollback. we might need to remove added item from page if fail
     RETURN_IF_FAIL(res, "Failed to write item metadata to file");
 

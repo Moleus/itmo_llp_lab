@@ -1,3 +1,8 @@
+#pragma once
+
+#include <stdlib.h>
+#include <string.h>
+
 typedef enum {
     NULL_POINTER_IN_ARGS = 0,
     FILE_NOT_FOUND = 2,

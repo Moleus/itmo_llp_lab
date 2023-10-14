@@ -20,22 +20,22 @@ TEST(test_page, page_add_item) {
     int32_t payload_size = (int32_t) strlen(data);
     payload.size = payload_size;
     payload.data = (void*) data;
-    ItemResult result;
+    ItemAddResult result;
     res = page_add_item(page, payload, &result);
     EXPECT_STREQ(res.message, nullptr);
     ASSERT_EQ(res.status, RES_OK);
 
-    const ItemResult expected = {
+    const ItemAddResult expected = {
         .metadata_offset_in_page = sizeof(PageHeader),
         .metadata = {
-            .id = item_id(0),
+            .item_id = item_id(0),
             .data_offset = size - payload_size,
             .size = payload_size
         },
         .item_id = item_id(0)
     };
     EXPECT_EQ(result.metadata_offset_in_page, expected.metadata_offset_in_page);
-    EXPECT_EQ(result.metadata.id.id, expected.metadata.id.id);
+    EXPECT_EQ(result.metadata.item_id.id, expected.metadata.item_id.id);
     EXPECT_EQ(result.metadata.data_offset, expected.metadata.data_offset);
     EXPECT_EQ(result.metadata.size, expected.metadata.size);
     EXPECT_EQ(result.item_id.id, expected.item_id.id);

@@ -11,7 +11,7 @@ int32_t page_get_payload_size(int32_t page_size) {
  * It doesn't have access to disk
  * Allocates new page. Assigns id
  */
-Page * page_new(page_index_t page_id, int32_t page_size) {
+Page *page_new(page_index_t page_id, int32_t page_size) {
     // TODO: rethink payload allocation
     u_int8_t *payload = malloc(page_get_payload_size(page_size));
     ASSERT_NOT_NULL(payload, FAILED_TO_ALLOCATE_MEMORY);
@@ -63,34 +63,46 @@ Result page_read_item(Page *self, item_index_t item_id, Item *item) {
     return OK;
 }
 
-Result page_add_item(Page *self, ItemPayload payload, ItemResult *item_add_result) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(item_add_result);
-
-    // check that we have enough size to put item metadata and item data into free-range
-    size_t free_space_size = self->page_header.free_space_end_offset - self->page_header.free_space_start_offset;
-    if (payload.size > free_space_size) {
-        return ERROR("Not enough space to put item");
-    }
-
+// private
+Result page_write_item(Page *self, ItemPayload payload, ItemAddResult *item_add_result) {
     // we place data in the reverse order staring from page end
     int32_t data_offset = self->page_header.free_space_end_offset - payload.size;
     item_index_t item_id = self->page_header.next_item_id;
     ItemMetadata metadata = {
-            .id = item_id,
+            .item_id = item_id,
             .data_offset = (int32_t) data_offset,
-            .size = payload.size
+            .size = payload.size,
+            .continues_on_page = NULL_PAGE_INDEX
     };
 
-    *item_add_result = (struct ItemResult) {
+    *item_add_result = (ItemAddResult) {
             .metadata_offset_in_page = self->page_header.free_space_start_offset,
             .metadata = metadata,
-            .item_id = item_id
+            .write_status = (ItemWriteStatus) {.complete = true, .bytes_left = 0 }
     };
     self->page_header.free_space_start_offset =
             item_add_result->metadata_offset_in_page + (int32_t) sizeof(ItemMetadata);
     self->page_header.free_space_end_offset = data_offset;
     self->page_header.next_item_id.id++;
+    return OK;
+}
+
+// public
+Result page_add_item(Page *self, ItemPayload payload, ItemAddResult *item_add_result) {
+    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(item_add_result);
+
+    size_t free_space_size = page_get_free_space_left(self);
+    if (payload.size > free_space_size) {
+        // we can only write part of the payload. Split it into two parts
+        ItemPayload partial_payload_head = payload;
+        partial_payload_head.size = page_get_payload_available_space(self);
+        page_write_item(self, partial_payload_head, item_add_result);
+        item_add_result->write_status.complete = false;
+        item_add_result->write_status.bytes_left = payload.size - partial_payload_head.size;
+        return OK;
+    }
+    page_write_item(self, payload, item_add_result);
 
     return OK;
 }
@@ -127,4 +139,12 @@ Result page_delete_item(Page *self, Item *item) {
 
 size_t page_size(Page *self) {
     return self->page_header.page_size;
+}
+
+int32_t page_get_free_space_left(Page *self) {
+    return self->page_header.free_space_end_offset - self->page_header.free_space_start_offset;
+}
+
+int32_t page_get_payload_available_space(Page *self) {
+    return page_get_free_space_left(self) - (int32_t) sizeof(ItemMetadata);
 }

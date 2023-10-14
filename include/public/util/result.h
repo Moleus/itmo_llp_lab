@@ -2,7 +2,7 @@
 
 #include "log.h"
 #include "stdbool.h"
-
+#include "error.h"
 
 enum ResultStatus {
     RES_OK = 0,
@@ -31,4 +31,10 @@ static bool result_is_fail__(Result result) {
     if (result_is_fail__(result)) {      \
         log_error(__FILE__, __LINE__, result.message);       \
         return ERROR(return_error_msg);          \
+    }
+
+#define ABORT_IF_FAIL(result, return_error_msg)\
+    if (result_is_fail__(result)) {      \
+        log_error(__FILE__, __LINE__, result.message);       \
+        exit(1);          \
     }

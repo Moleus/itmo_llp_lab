@@ -20,6 +20,7 @@ static inline item_index_t next_item(item_index_t self) {
 typedef struct page_index_t {
     u_int32_t id;
 } page_index_t;
+#define NULL_PAGE_INDEX (page_index_t) {.id = -1}
 
 static inline page_index_t page_id(int32_t value) {
     return (page_index_t) {.id = value};
@@ -60,10 +61,16 @@ struct Page {
     PagePayload page_payload;
 };
 
+typedef struct {
+    bool complete;
+    int32_t bytes_left;
+} ItemWriteStatus;
+
 typedef struct ItemMetadata {
-    item_index_t id;
+    item_index_t item_id;
     int32_t data_offset;
     int32_t size;
+    page_index_t continues_on_page;
 } ItemMetadata;
 
 // Reference to an item payload in a file
@@ -73,12 +80,11 @@ struct Item {
     bool is_deleted;
 };
 
-typedef struct ItemResult ItemResult;
-struct ItemResult {
+typedef struct {
     int32_t metadata_offset_in_page;
     ItemMetadata metadata;
-    item_index_t item_id;
-};
+    ItemWriteStatus write_status;
+} ItemAddResult;
 
 Page * page_new(page_index_t page_id, int32_t page_size);
 
@@ -87,7 +93,14 @@ Result page_destroy(Page *self);
 // payload size
 int32_t page_get_payload_size(int32_t page_size);
 
-Result page_add_item(Page *self, ItemPayload payload, struct ItemResult *item_add_result);
+Result page_add_item(Page *self, ItemPayload payload, ItemAddResult *item_add_result);
+
+Result page_add_split_item_start(Page *self, ItemPayload payload, ItemAddResult *item_add_result);
+
+Result page_add_split_item_end(Page *self, ItemPayload payload, ItemAddResult *item_add_result);
 
 Result page_delete_item(Page *self, Item *item);
 
+int32_t page_get_free_space_left(Page *self);
+
+int32_t page_get_payload_available_space(Page *self);

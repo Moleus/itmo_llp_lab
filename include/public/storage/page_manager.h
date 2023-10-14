@@ -46,8 +46,9 @@ PageIterator * page_manager_get_pages(PageManager *self);
 
 ItemIterator * page_manager_get_items(PageManager *self);
 
-Result page_manager_get_page_for_data(PageManager *self, ItemPayload data, Page **result);
-
-Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload, ItemResult *item_add_result);
+Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload, ItemAddResult *item_add_result);
 
 Result page_manager_delete_item(PageManager *self, Page *page, Item *item);
+
+// free page management
+Result page_manager_get_page_for_data(PageManager *self, ItemPayload data, Page **result);
