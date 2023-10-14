@@ -23,7 +23,8 @@ void page_iterator_destroy(PageIterator *self) {
 bool page_iterator_has_next(PageIterator *self) {
     ASSERT_ARG_NOT_NULL(self);
 
-    return self->next_page_id.id < self->page_manager->pages_count;
+    int32_t pages_count = page_manager_get_pages_count(self->page_manager);
+    return self->next_page_id.id < pages_count;
 }
 
 Result page_iterator_next(PageIterator *self, Page **result) {

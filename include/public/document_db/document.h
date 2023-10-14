@@ -5,8 +5,6 @@
 #include "node.h"
 
 typedef struct {
-    size_t id;
-    char *name;
     Node *root_node;
     PageManager *page_manager;
 } Document;
@@ -45,7 +43,7 @@ typedef struct {
     Node nodes[];
 } GetAllChildrenResult;
 
-Result document_new(Document *self);
+Document *document_new(PageManager *page_manager);
 
 Result document_destroy(Document *self);
 

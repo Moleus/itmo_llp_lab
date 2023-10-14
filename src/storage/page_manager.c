@@ -2,6 +2,7 @@
 
 //TODO: think if it's correct to include private header
 #include "private/storage/page.h"
+#include "private/storage/file_manager.h"
 
 #define ITEM_METADATA_SIZE ((int32_t) sizeof(ItemMetadata))
 
@@ -10,21 +11,30 @@
 size_t page_manager_get_page_offset(PageManager *self, page_index_t page_id) {
     ASSERT_ARG_NOT_NULL(self);
 
-    return (size_t) page_id.id * self->page_size;
+    return (size_t) page_id.id * page_manager_get_page_size(self);
 }
 
 page_index_t page_manager_get_last_page_id(PageManager *self) {
     ASSERT_ARG_NOT_NULL(self);
 
-    return page_id(self->pages_count - 1);
+    int32_t pages_count = page_manager_get_pages_count(self);
+    return page_id(pages_count - 1);
 }
 
 // Public
 Result page_manager_new(PageManager *self, FileManager *file_manager) {
     ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(file_manager);
 
     // TODO: read pages count from file manager
-    self->pages_count = 0;
+
+    //TODO: persist on disk page-manager's data in file-header.
+    FileHeader file_header;
+    Result res = file_manager_read_header(file_manager, &file_header);
+    RETURN_IF_FAIL(res, "Failed to read file header");
+
+    self->pages_count = file_header.page_count;
+    self->page_size = file_header.page_size;
     self->file_manager = file_manager;
     return OK;
 }
@@ -45,10 +55,13 @@ Result page_manager_page_new(PageManager *self, Page **page) {
     ASSERT_ARG_IS_NULL(*page);
 
     page_index_t next_id = next_page(page_manager_get_last_page_id(self));
-    *page = page_new(next_id, self->page_size);
-    self->pages_count++;
+    *page = page_new(next_id, page_manager_get_page_size(self));
+    int32_t old_pages_count = page_manager_get_pages_count(self);
+    Result res = page_manager_set_pages_count(self, old_pages_count++);
+    RETURN_IF_FAIL(res, "Failed increment pages count");
     // write to file
-    Result page_write_res = file_manager_write(self->file_manager, (*page)->page_header.file_offset, self->page_size,
+    int32_t page_size = page_manager_get_page_size(self);
+    Result page_write_res = file_manager_write(self->file_manager, (*page)->page_header.file_offset, page_size,
                                                page);
     // TODO: free page if fail
     RETURN_IF_FAIL(page_write_res, "Failed to write new page to file");
@@ -72,7 +85,8 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_IS_NULL(*result_page);
 
-    if (id.id >= self->pages_count) {
+    int32_t pages_count = page_manager_get_pages_count(self);
+    if (id.id >= pages_count) {
         ABORT_EXIT(INTERNAL_LIB_ERROR, "Page doesn't exist");
     }
 
@@ -88,14 +102,15 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_
 
     // load from disk
     // allocate page here
-    Page *page = page_new(id, self->page_size);
+    int32_t page_size = page_manager_get_page_size(self);
+    Page *page = page_new(id, page_size);
 
     // read header
     res = file_manager_read(self->file_manager, offset, sizeof(PageHeader), page);
     RETURN_IF_FAIL(res, "Failed to read page header from file")
 
     // read payload
-    res = file_manager_read(self->file_manager, offset + sizeof(PageHeader), page_get_payload_size(self->page_size),
+    res = file_manager_read(self->file_manager, offset + sizeof(PageHeader), page_get_payload_size(page_size),
                             page->page_payload.bytes);
     RETURN_IF_FAIL(res, "Failed to read page payload from file");
 
@@ -153,7 +168,7 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
         Page *free_page = NULL;
         res = page_manager_page_new(self, &free_page);
         // !!! update current_free page. Forget about the old one.
-        self->current_free_page = free_page;
+        page_manager_set_current_free_page(self, free_page);
         RETURN_IF_FAIL(res, "Failed to allocate one more page for large payload")
         ItemPayload payload_to_write = {
                 .data = payload.data + item_add_result->write_status.bytes_left,
@@ -162,7 +177,7 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
         res = page_manager_put_item(self, free_page, payload_to_write, &free_page_item_add_result);
         ABORT_IF_FAIL(res, "Failed to write part of large payload to file")
 
-        // TODO: !!! FUCKING IMPORTANT !!! check that we set next page correctly inside recursion
+        // TODO: !!! FUCKING IMPORTANT !!! test that we set next page correctly inside recursion
         item_add_result->metadata.continues_on_page = free_page->page_header.page_id;
     }
 
@@ -207,4 +222,38 @@ Result page_manager_delete_item(PageManager *self, Page *page, Item *item) {
 
     // TODO: implement defragmentation
     return OK;
+}
+
+Page *page_manager_get_current_free_page(PageManager *self) {
+    ASSERT_ARG_NOT_NULL(self);
+
+    return self->current_free_page;
+}
+
+Result page_manager_set_current_free_page(PageManager *self, Page *page) {
+    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(page);
+
+    self->file_manager->header.dynamic.current_free_page = page->page_header.page_id.id;
+    self->current_free_page = page;
+    return file_manager_write_header(self->file_manager);
+}
+
+int32_t page_manager_get_page_size(PageManager *self) {
+    ASSERT_ARG_NOT_NULL(self);
+
+    return self->file_manager->header.constants.page_size;
+}
+
+int32_t page_manager_get_pages_count(PageManager *self) {
+    ASSERT_ARG_NOT_NULL(self);
+
+    return self->file_manager->header.dynamic.page_count;
+}
+
+Result page_manager_set_pages_count(PageManager *self, int32_t pages_count) {
+    ASSERT_ARG_NOT_NULL(self);
+
+    self->file_manager->header.dynamic.page_count = pages_count;
+    return file_manager_write_header(self->file_manager);
 }

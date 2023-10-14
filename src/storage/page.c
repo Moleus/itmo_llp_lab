@@ -92,6 +92,10 @@ Result page_add_item(Page *self, ItemPayload payload, ItemAddResult *item_add_re
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_NOT_NULL(item_add_result);
 
+    if (payload.size > page_get_payload_available_space(self)) {
+        ABORT_EXIT(INTERNAL_LIB_ERROR, "Can't add item to this page. Not enough space for metadata");
+    }
+
     size_t free_space_size = page_get_free_space_left(self);
     if (payload.size > free_space_size) {
         // we can only write part of the payload. Split it into two parts

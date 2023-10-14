@@ -29,7 +29,7 @@ Result file_manager_destroy(FileManager *self) {
     return OK;
 }
 
-Result file_manager_open(FileManager *self, char *filename) {
+Result file_manager_open(FileManager *self, const char *filename) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_NOT_NULL(filename);
 
@@ -43,11 +43,10 @@ Result file_manager_read_header(FileManager *self, FileHeader *header) {
     return file_read(self->file, header, 0, sizeof(FileHeader));
 }
 
-Result file_manager_write_header(FileManager *self, FileHeader *header) {
+Result file_manager_write_header(FileManager *self) {
     ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(header);
 
-    return file_write(self->file, header, 0, sizeof(FileHeader));
+    return file_write(self->file, &self->header, 0, sizeof(FileHeader));
 }
 
 Result file_manager_read(FileManager *self, size_t offset, size_t size, void *buffer) {

@@ -39,7 +39,6 @@ struct PageHeader {
     // these two fields describe a range of free space [start; end]
     int32_t free_space_start_offset;
     int32_t free_space_end_offset;
-    bool is_dirty; // we don't need to store this field in file
 };
 
 typedef struct PageInMemoryData PageInMemoryData;

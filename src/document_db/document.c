@@ -1,6 +1,25 @@
 #include "private/document_db/document.h"
 #include "private/storage/page_manager.h"
 
+Document *document_new(PageManager *page_manager) {
+    Document *document = malloc(sizeof(Document));
+    ASSERT_NOT_NULL(document, FAILED_TO_ALLOCATE_MEMORY);
+    document->page_manager = page_manager;
+    document->root_node = NULL;
+    return document;
+}
+
+Result document_init_all(Document *self, const char *file_path, size_t page_size) {
+    FileManager *fm = file_manager_new();
+    Result res = file_manager_open(fm, file_path);
+    RETURN_IF_FAIL(res, "failed to open file while creating document");
+
+    self->page_manager->pages_count =
+    Document result = {
+            .page_manager = page_manager_new(file_path, page_size)
+    };
+}
+
 // --- ADD NODE ---
 // persists new node and assigns id to it
 Result document_persist_new_node(Document *self, Node *node) {
@@ -20,7 +39,7 @@ Result document_persist_new_node(Document *self, Node *node) {
     res = page_manager_put_item(self->page_manager, page, itemPayload, &item_result);
     RETURN_IF_FAIL(res, "failed to persist new data");
 
-    node->id = (node_id_t ) {.page_id = page->page_header.page_id.id, .item_id = item_result.metadata.item_id.id};
+    node->id = (node_id_t) {.page_id = page->page_header.page_id.id, .item_id = item_result.metadata.item_id.id};
 
     return OK;
 }
@@ -47,7 +66,7 @@ Result document_add_root_node(Document *self, Node *root) {
     return document_persist_new_node(self, root);
 }
 
-Result document_add_child_node(Document *self, Node * current_node) {
+Result document_add_child_node(Document *self, Node *current_node) {
     ItemIterator *items_it = page_manager_get_items(self->page_manager);
     while (item_iterator_has_next(items_it)) {
         Item *item;
@@ -170,7 +189,7 @@ Result document_add_bulk_nodes(Document *self, CreateMultipleNodesRequest *reque
 }
 
 // --- GET ALL CHILDREN ---
-Result document_get_all_children(Document *self, GetAllChildrenRequest* request, GetAllChildrenResult *result) {
+Result document_get_all_children(Document *self, GetAllChildrenRequest *request, GetAllChildrenResult *result) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_NOT_NULL(request);
     ASSERT_ARG_NOT_NULL(result);
