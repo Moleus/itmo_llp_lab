@@ -33,14 +33,6 @@ static const char *error_descriptions[] = {
         "Internal library error",
 };
 
-// util method to print error message and description based on error code and exit with code 1
-static void exit_with_msg(ErrorCodes error_code, const char* file, int line) {
-    if (errno != 0) {
-        printf("Error: %s. Caused by %s\n", strerror(errno), error_descriptions[error_code]);
-    }
-    exit(1);
-}
-
 static void exit_with_msg_arg(ErrorCodes error_code, const char *details, const char* file, int line) {
     // TODO: check that it's legal
     if (errno != 0) {
@@ -56,6 +48,11 @@ static void exit_with_msg_arg(ErrorCodes error_code, const char *details, const 
     }
 
     exit(1);
+}
+
+// util method to print error message and description based on error code and exit with code 1
+static void exit_with_msg(ErrorCodes error_code, const char* file, int line) {
+    exit_with_msg_arg(error_code, "got null", file, line);
 }
 
 static void check_arg_null_pointer(const void *arg, const char* arg_name, const char* file, int line) {

@@ -14,10 +14,7 @@ Result document_init_all(Document *self, const char *file_path, size_t page_size
     Result res = file_manager_open(fm, file_path);
     RETURN_IF_FAIL(res, "failed to open file while creating document");
 
-    self->page_manager->pages_count =
-    Document result = {
-            .page_manager = page_manager_new(file_path, page_size)
-    };
+    self->page_manager.
 }
 
 // --- ADD NODE ---
