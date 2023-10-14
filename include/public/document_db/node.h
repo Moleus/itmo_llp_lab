@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stdlib.h>
-#include <stdbool.h>
 #include "public/util/common.h"
 
 typedef struct {
@@ -29,8 +27,6 @@ typedef struct {
 typedef struct {
     size_t id;
     struct Node *parent_node;
-    struct Node *children;
-    size_t children_count;
     NodeValue value;
 } Node;
 

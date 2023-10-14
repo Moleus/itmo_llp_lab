@@ -1,14 +1,14 @@
 #pragma once
 
-#include <stdlib.h>
-#include <stdbool.h>
-#include "util/result.h"
-#include "domain.h"
+#include "public/util/result.h"
+#include "public/storage/page_manager.h"
+#include "node.h"
 
 typedef struct {
     size_t id;
     char *name;
     Node *root_node;
+    PageManager *page_manager;
 } Document;
 
 typedef struct {

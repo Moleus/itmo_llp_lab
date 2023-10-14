@@ -18,16 +18,10 @@ typedef struct PageManager PageManager;
 Result page_manager_new(PageManager *self, FileManager *file_manager);
 Result page_manager_destroy(PageManager *self);
 
-Result page_manager_page_new(PageManager *self, Page *page);
-Result page_manager_page_destroy(PageManager *self, Page *page);
-
-Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_page);
-Result page_manager_flush_page(PageManager *self, Page *page);
-
 typedef struct PageIterator PageIterator;
 
 // TODO: make private
-Result page_iterator_new(PageManager *page_manager, PageIterator **result);
+PageIterator * page_iterator_new(PageManager *page_manager);
 
 void page_iterator_destroy(PageIterator *self);
 

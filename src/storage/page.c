@@ -11,39 +11,35 @@ int32_t page_get_payload_size(int32_t page_size) {
  * It doesn't have access to disk
  * Allocates new page. Assigns id
  */
-Result page_new(page_index_t page_id, int32_t page_size, Page **result) {
-    ASSERT_ARG_IS_NULL(result);
-
+Page * page_new(page_index_t page_id, int32_t page_size) {
     // TODO: rethink payload allocation
     u_int8_t *payload = malloc(page_get_payload_size(page_size));
-    RETURN_IF_NULL(payload, "Failed to allocate page payload");
-    result = malloc(sizeof(Page));
-    RETURN_IF_NULL(result, "Failed to allocate page")
+    ASSERT_NOT_NULL(payload, FAILED_TO_ALLOCATE_MEMORY);
+    Page *result = malloc(sizeof(Page));
+    ASSERT_NOT_NULL(result, FAILED_TO_ALLOCATE_MEMORY);
 
     PageHeader header = {
             .page_id = page_id,
             .file_offset = (int32_t) page_id.id * page_size,
             .next_item_id = 0,
             .free_space_start_offset = HEADER_SIZE,
-            .free_space_end_offset = page_size
+            .free_space_end_offset = page_size,
+            .is_dirty = false,
+            .page_size = page_size,
     };
 
-    (*result)->page_header = header;
-    (*result)->page_payload.bytes = payload;
-    return OK;
+    result->page_header = header;
+    result->page_payload.bytes = payload;
+    return result;
 }
 
 Result page_destroy(Page *self) {
     ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(self->page_payload.bytes)
+    ASSERT_ARG_NOT_NULL(self->page_payload.bytes);
 
     free(self->page_payload.bytes);
     free(self);
     return OK;
-}
-
-int32_t page_get_data_offset() {
-    return sizeof(PageHeader);
 }
 
 static ItemMetadata get_metadata(const Page *self, item_index_t item_id) {
@@ -67,23 +63,23 @@ Result page_read_item(Page *self, item_index_t item_id, Item *item) {
     return OK;
 }
 
-Result page_add_item(Page *self, Item *item, struct ItemResult *item_add_result) {
+Result page_add_item(Page *self, ItemPayload payload, ItemResult *item_add_result) {
     ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(item);
+    ASSERT_ARG_NOT_NULL(item_add_result);
 
     // check that we have enough size to put item metadata and item data into free-range
     size_t free_space_size = self->page_header.free_space_end_offset - self->page_header.free_space_start_offset;
-    if (item->size > free_space_size) {
+    if (payload.size > free_space_size) {
         return ERROR("Not enough space to put item");
     }
 
     // we place data in the reverse order staring from page end
-    int32_t data_offset = self->page_header.free_space_end_offset - item->size;
+    int32_t data_offset = self->page_header.free_space_end_offset - payload.size;
     item_index_t item_id = self->page_header.next_item_id;
     ItemMetadata metadata = {
             .id = item_id,
             .data_offset = (int32_t) data_offset,
-            .size = item->size
+            .size = payload.size
     };
 
     *item_add_result = (struct ItemResult) {
@@ -113,7 +109,7 @@ Result page_delete_item(Page *self, Item *item) {
 
     ItemMetadata metadata = get_metadata(self, item->index_in_page);
 
-    free(item->data);
+    free(item->payload.data);
     item->is_deleted = true;
     // if this was the last item in page then we can just move free space start offset
     //TODO: test this and check data consistency. Theoretically, we don't care about payload, but headers.
@@ -122,7 +118,8 @@ Result page_delete_item(Page *self, Item *item) {
         self->page_header.free_space_start_offset -= sizeof(ItemMetadata);
         self->page_header.free_space_end_offset += metadata.size;
         self->page_header.next_item_id.id--;
-        *item = NULL_ITEM;
+        // TODO: check if we can assign null item?
+//        *item = NULL_ITEM;
     }
 
     return OK;

@@ -1,13 +1,11 @@
 #include "private/storage/file.h"
 #include <assert.h>
 
-Result file_new(FileState **fs) {
-    ASSERT_ARG_IS_NULL(*fs);
-
-    *fs = malloc(sizeof(FileState));
-    (*fs)->is_open = false;
-    RETURN_IF_NULL(fs, "Failed to allocate FileState");
-    return OK;
+FileState * file_new() {
+    FileState *fs = malloc(sizeof(FileState));
+    ASSERT_NOT_NULL(fs, FAILED_TO_ALLOCATE_MEMORY);
+    fs->is_open = false;
+    return fs;
 }
 
 Result file_destroy(FileState *fs) {

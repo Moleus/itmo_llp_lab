@@ -16,7 +16,7 @@ typedef enum {
     FAILED_TO_ALLOCATE_MEMORY = 6,
 } ErrorCodes;
 
-#define ASSERT_ARG_NOT_NULL(arg) check_arg_null_pointer(arg, #arg, __FILE__, __LINE__);
+#define ASSERT_ARG_NOT_NULL(arg) check_arg_null_pointer(arg, #arg, __FILE__, __LINE__)
 #define ASSERT_ARG_IS_NULL(arg) check_arg_is_null_pointer(arg, #arg, __FILE__, __LINE__);
 #define ASSERT_NOT_NULL(arg, error_code) if (arg == NULL) { exit_with_msg(error_code); }
 #define RETURN_IF_NULL(arg, err_msg) if (arg == NULL) { return ERROR(err_msg); }

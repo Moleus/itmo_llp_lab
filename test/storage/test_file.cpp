@@ -13,7 +13,7 @@ void assert_ok(Result res) {
 
 TEST(test_file, test_file_new) {
     FileState *file = nullptr;
-    Result res = file_new(&file);
+    Result res = file_new();
     Result expected = (Result){.status = RES_OK, .message = nullptr};
     assert_ok(res);
     ASSERT_EQ(file_is_open(file), false);
@@ -22,7 +22,7 @@ TEST(test_file, test_file_new) {
 
 TEST(test_file, test_file_open) {
     FileState *file = nullptr;
-    file_new(&file);
+    file_new();
     Result res = file_open(file, "/tmp/test_file.txt");
     assert_ok(res);
     ASSERT_EQ(file_is_open(file), true);
@@ -34,7 +34,7 @@ TEST(test_file, test_file_open) {
 
 TEST(test_file, test_file_read) {
     FileState *file = nullptr;
-    file_new(&file);
+    file_new();
     // manually write to file
     FILE *fd = fopen("/tmp/test_file.txt", "w");
     fwrite("test", sizeof(char), 4, fd);
@@ -51,7 +51,7 @@ TEST(test_file, test_file_read) {
 
 TEST(test_file, test_file_write) {
     FileState *file = nullptr;
-    file_new(&file);
+    file_new();
     file_open(file, "/tmp/test_file.txt");
     uint8_t buf[] = {0xBE, 0xAF, 0xBA, 0xBE};
     Result res = file_write(file, buf, 0, sizeof(buf));

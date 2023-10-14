@@ -40,17 +40,16 @@ Result page_manager_destroy(PageManager *self) {
 /*
  * Allocates new page
  */
-Result page_manager_page_new(PageManager *self, Page *page) {
+Result page_manager_page_new(PageManager *self, Page **page) {
     ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_IS_NULL(page);
+    ASSERT_ARG_IS_NULL(*page);
 
     page_index_t next_id = next_page(page_manager_get_last_page_id(self));
-    Result new_page_res = page_new(next_id, self->page_size, page);
-    RETURN_IF_FAIL(new_page_res, "Failed to create page");
+    *page = page_new(next_id, self->page_size);
     self->pages_count++;
-    // TODO: add page to file
-    // TODO: check file offset
-    Result page_write_res = file_manager_write(self->file_manager, page->page_header.file_offset, self->page_size, page);
+    // write to file
+    Result page_write_res = file_manager_write(self->file_manager, (*page)->page_header.file_offset, self->page_size, page);
+    // TODO: free page if fail
     RETURN_IF_FAIL(page_write_res, "Failed to write new page to file");
 
     return OK;
@@ -89,7 +88,7 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_
     // load from disk
     // allocate page here
     Page *page;
-    res = page_new(id, self->page_size, &page);
+    res = page_new(id, self->page_size);
     RETURN_IF_FAIL(res, "Failed to create page");
 
     // read header
@@ -139,14 +138,13 @@ static size_t convert_to_file_offset(PageManager *self, page_index_t page_id, si
     return page_manager_get_page_offset(self, page_id) + offset_in_page;
 }
 
-Result page_manager_put_item(PageManager *self, Page *page, Item *item) {
+Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_NOT_NULL(page);
-    ASSERT_ARG_NOT_NULL(item);
 
     // persist in memory
     ItemResult item_add_result;
-    Result res = page_add_item(page, item, &item_add_result);
+    Result res = page_add_item(page, payload, &item_add_result);
     RETURN_IF_FAIL(res, "Failed to add item to page in memory");
 
     ItemMetadata metadata = item_add_result.metadata;
@@ -162,7 +160,7 @@ Result page_manager_put_item(PageManager *self, Page *page, Item *item) {
 
     // persist data on disk
     size_t data_offset_in_file = convert_to_file_offset(self, page->page_header.page_id, data_offset);
-    res = file_manager_write(self->file_manager, data_offset_in_file, item->size, item->data);
+    res = file_manager_write(self->file_manager, data_offset_in_file, payload.size, payload.data);
     RETURN_IF_FAIL(res, "Failed to write item data to file");
 
     // persist header on disk
@@ -189,19 +187,5 @@ Result page_manager_delete_item(PageManager *self, Page *page, Item *item) {
     RETURN_IF_FAIL(res, "Failed to write page header to file");
 
     // TODO: implement defragmentation
-    return OK;
-}
-
-Result page_manager_get_item();
-
-// helper which maps page offset into global file offsets
-Result page_manager_get_page_offsets(PageManager *self, page_index_t page_id, size_t *start_offset, size_t *end_offset) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(start_offset);
-    ASSERT_ARG_NOT_NULL(end_offset);
-
-    size_t page_offset = page_manager_get_page_offset(self, page_id);
-    *start_offset = page_offset + page_get_data_offset();
-    *end_offset = page_offset + self->page_size;
     return OK;
 }

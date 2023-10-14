@@ -6,7 +6,7 @@ extern "C" {
 
 TEST(test_file_manager, test_file_manager_new) {
     FileManager *fm = nullptr;
-    Result res = file_manager_new(&fm);
+    Result res = file_manager_new();
     Result expected = (Result){.status = RES_OK, .message = nullptr};
     ASSERT_STREQ(res.message, expected.message);
     ASSERT_EQ(res.status, expected.status);

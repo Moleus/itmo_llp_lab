@@ -7,7 +7,7 @@ typedef struct FileHeader FileHeader;
 
 typedef struct FileManager FileManager;
 
-Result file_manager_new(FileManager **dest);
+FileManager * file_manager_new();
 
 Result file_manager_destroy(FileManager *self);
 

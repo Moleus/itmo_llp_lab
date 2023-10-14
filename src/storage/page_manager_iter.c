@@ -4,15 +4,15 @@
 #include "private/storage/page.h"
 
 // Page Iterator
-Result page_iterator_new(PageManager *page_manager, PageIterator **result) {
+PageIterator * page_iterator_new(PageManager *page_manager) {
     ASSERT_ARG_NOT_NULL(page_manager);
-    ASSERT_ARG_IS_NULL(result);
 
-    *result = malloc(sizeof(PageIterator));
-    **result = (PageIterator) {.page_manager = page_manager, .next_page_id = 0,
+    PageIterator *result = malloc(sizeof(PageIterator));
+    ASSERT_NOT_NULL(result, FAILED_TO_ALLOCATE_MEMORY);
+    *result = (PageIterator) {.page_manager = page_manager, .next_page_id = 0,
                                //TODO: check
                                .current_page = page_manager->pages};
-    return OK;
+    return result;
 }
 
 void page_iterator_destroy(PageIterator *self) {
@@ -109,7 +109,7 @@ Result page_manager_get_pages(PageManager *self, PageIterator **result) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_IS_NULL(result);
 
-    return page_iterator_new(self, result);
+    return page_iterator_new(self);
 }
 
 Result page_manager_get_items(PageManager *self, ItemIterator **result) {
