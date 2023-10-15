@@ -1,5 +1,6 @@
 #pragma once
 
+#include "public/util/common.h"
 #include "public/storage/page_manager.h"
 #include "private/storage/page.h"
 
@@ -25,6 +26,7 @@ struct ItemIterator{
     PageIterator *page_iterator;
     item_index_t current_item_index;
     Item *current_item;
+    DestroyFunc *destroy;
 };
 
 Result page_manager_page_new(PageManager *self, Page **page);

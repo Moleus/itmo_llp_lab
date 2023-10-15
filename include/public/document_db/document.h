@@ -43,7 +43,7 @@ typedef struct {
     Node nodes[];
 } GetAllChildrenResult;
 
-Document *document_new(PageManager *page_manager);
+Document *document_new();
 
 Result document_destroy(Document *self);
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdbool.h>
+#include <stdint.h>
 #include "public/storage/page.h"
 
 typedef struct item_index_t {
@@ -18,11 +19,11 @@ static inline item_index_t next_item(item_index_t self) {
 //#define NULL_ITEM (Item){.size=0, .data = NULL, .index_in_page = 0, .is_deleted = true}
 
 typedef struct page_index_t {
-    u_int32_t id;
+    uint32_t id;
 } page_index_t;
 #define NULL_PAGE_INDEX (page_index_t) {.id = -1}
 
-static inline page_index_t page_id(int32_t value) {
+static inline page_index_t page_id(uint32_t value) {
     return (page_index_t) {.id = value};
 }
 

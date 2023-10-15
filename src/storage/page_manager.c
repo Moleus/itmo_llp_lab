@@ -22,20 +22,34 @@ page_index_t page_manager_get_last_page_id(PageManager *self) {
 }
 
 // Public
-Result page_manager_new(PageManager *self, FileManager *file_manager) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(file_manager);
+PageManager *page_manager_new() {
+    PageManager *pm = malloc(sizeof(PageManager));
+    ASSERT_NOT_NULL(pm, FAILED_TO_ALLOCATE_MEMORY);
+    pm->file_manager = file_manager_new();
+    pm->pages = NULL;
+    pm->pages_in_memory = 0;
+    pm->current_free_page = NULL;
+    return pm;
+}
 
-    // TODO: read pages count from file manager
+Result page_manager_init(PageManager *self, const char *filename, uint32_t page_size, int32_t file_signature) {
+    ASSERT_ARG_NOT_NULL(self);
 
     //TODO: persist on disk page-manager's data in file-header.
-    FileHeader file_header;
-    Result res = file_manager_read_header(file_manager, &file_header);
+    FileHeaderConstants header_for_new_file = {
+            .signature = file_signature,
+            .page_size = page_size
+    };
+
+    Result res = file_manager_init(self->file_manager, filename, header_for_new_file);
     RETURN_IF_FAIL(res, "Failed to read file header");
 
-    self->pages_count = file_header.page_count;
-    self->page_size = file_header.page_size;
-    self->file_manager = file_manager;
+    // this works both with empty file and file which contains data
+    page_index_t free_page_id = page_id(self->file_manager->header.dynamic.current_free_page);
+    Page *current_free_page = NULL;
+    page_manager_read_page(self, free_page_id, &current_free_page);
+    self->current_free_page = current_free_page;
+
     return OK;
 }
 

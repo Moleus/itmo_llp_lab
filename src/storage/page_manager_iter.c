@@ -4,14 +4,14 @@
 #include "private/storage/page.h"
 
 // Page Iterator
-PageIterator * page_iterator_new(PageManager *page_manager) {
+PageIterator *page_iterator_new(PageManager *page_manager) {
     ASSERT_ARG_NOT_NULL(page_manager);
 
     PageIterator *result = malloc(sizeof(PageIterator));
     ASSERT_NOT_NULL(result, FAILED_TO_ALLOCATE_MEMORY);
     *result = (PageIterator) {.page_manager = page_manager, .next_page_id = 0,
-                               //TODO: check
-                               .current_page = page_manager->pages};
+            //TODO: check
+            .current_page = page_manager->pages};
     return result;
 }
 
@@ -43,14 +43,15 @@ Result page_iterator_next(PageIterator *self, Page **result) {
 }
 
 // Item Iterator
-ItemIterator * item_iterator_new(PageManager *page_manager) {
+ItemIterator *item_iterator_new(PageManager *page_manager) {
     ASSERT_ARG_NOT_NULL(page_manager);
 
     ItemIterator *item_it = malloc(sizeof(ItemIterator));
     ASSERT_NOT_NULL(item_it, FAILED_TO_ALLOCATE_MEMORY);
 
     PageIterator *page_iterator = page_manager_get_pages(page_manager);
-    *item_it = (ItemIterator) {.page_iterator = page_iterator, .current_item = NULL, .current_item_index = -1};
+    *item_it = (ItemIterator) {.page_iterator = page_iterator, .current_item = NULL, .current_item_index = -1,
+            .destroy = (DestroyFunc *) item_iterator_destroy};
     return item_it;
 }
 
@@ -105,13 +106,13 @@ Result item_iterator_next(ItemIterator *self, Item **result) {
 
 // To top-level function which should be used to get items and pages
 // TODO: do we need to get pages? If not - remove this method
-PageIterator * page_manager_get_pages(PageManager *self) {
+PageIterator *page_manager_get_pages(PageManager *self) {
     ASSERT_ARG_NOT_NULL(self);
 
     return page_iterator_new(self);
 }
 
-ItemIterator * page_manager_get_items(PageManager *self) {
+ItemIterator *page_manager_get_items(PageManager *self) {
     ASSERT_ARG_NOT_NULL(self);
 
     return item_iterator_new(self);

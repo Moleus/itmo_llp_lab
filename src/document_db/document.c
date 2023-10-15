@@ -1,20 +1,18 @@
 #include "private/document_db/document.h"
 #include "private/storage/page_manager.h"
 
-Document *document_new(PageManager *page_manager) {
+#define FILE_SIGNATURE 0x12345678
+
+Document *document_new() {
     Document *document = malloc(sizeof(Document));
     ASSERT_NOT_NULL(document, FAILED_TO_ALLOCATE_MEMORY);
-    document->page_manager = page_manager;
+    document->page_manager = page_manager_new();
     document->root_node = NULL;
     return document;
 }
 
 Result document_init_all(Document *self, const char *file_path, size_t page_size) {
-    FileManager *fm = file_manager_new();
-    Result res = file_manager_open(fm, file_path);
-    RETURN_IF_FAIL(res, "failed to open file while creating document");
-
-    self->page_manager.
+    return page_manager_init(self->page_manager, file_path, page_size, FILE_SIGNATURE);
 }
 
 // --- ADD NODE ---
@@ -59,6 +57,8 @@ Result document_add_root_node(Document *self, Node *root) {
             ABORT_EXIT(INTERNAL_LIB_ERROR, "Root node already exists in document tree");
         }
     }
+    item_iterator_destroy(items_it);
+    items_it->destroyable->destroy(items_it);
 
     return document_persist_new_node(self, root);
 }
@@ -75,6 +75,7 @@ Result document_add_child_node(Document *self, Node *current_node) {
             return document_persist_new_node(self, current_node);
         }
     }
+    item_iterator_destroy(items_it);
     // didn't find parent node
     return ERROR("Parent node doesn't exist in document tree");
 }
@@ -114,6 +115,7 @@ Result document_delete_node(Document *self, DeleteNodeRequest *request) {
             ABORT_EXIT(INTERNAL_LIB_ERROR, "Node contains children");
         }
     }
+    item_iterator_destroy(items_it);
     items_it = page_manager_get_items(self->page_manager);
     // find our node
     while (item_iterator_has_next(items_it)) {
@@ -127,6 +129,7 @@ Result document_delete_node(Document *self, DeleteNodeRequest *request) {
             return page_manager_delete_item(self->page_manager, page, item);
         }
     }
+    item_iterator_destroy(items_it);
 
     // didn't find node
     return ERROR("Node doesn't exist in document tree");

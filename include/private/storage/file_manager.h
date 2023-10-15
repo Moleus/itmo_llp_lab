@@ -4,24 +4,29 @@
 #include "private/storage/file.h"
 #include "stdint.h"
 
-struct FileHeaderConstants {
+struct FileHeaderConstants{
     int32_t signature;
     uint32_t page_size;
-};
+} ;
 
-struct FileHeaderDynamic {
+typedef struct {
     uint32_t file_size;
     uint32_t current_free_page;
     uint32_t page_count;
-};
+} FileHeaderDynamic;
 
 struct FileHeader {
-    struct FileHeaderConstants constants;
-    struct FileHeaderDynamic dynamic;
+    FileHeaderConstants constants;
+    FileHeaderDynamic dynamic;
 };
 
 // file object which stores pointer to file
-struct FileManager{
+struct FileManager {
     FileState *file;
     FileHeader header;
 };
+
+// read file header from file
+Result file_manager_read_header(FileManager *self);
+
+Result file_manager_open(FileManager *self, const char *filename);

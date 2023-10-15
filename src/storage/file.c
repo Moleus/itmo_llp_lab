@@ -5,6 +5,7 @@ FileState * file_new() {
     FileState *fs = malloc(sizeof(FileState));
     ASSERT_NOT_NULL(fs, FAILED_TO_ALLOCATE_MEMORY);
     fs->is_open = false;
+    fs->is_new = false;
     return fs;
 }
 
@@ -21,10 +22,17 @@ Result file_open(FileState *fs, const char *filename) {
     ASSERT_ARG_NOT_NULL(filename);
     assert(fs->is_open == false);
 
-    FILE *file = fopen(filename, "a+");
-    RETURN_IF_NULL(file, "Can't open file");
+    // try to read the file
+    FILE *file = fopen(filename, "r+b");
+    if (file == NULL) {
+        // if it doesn't exist - set flag and create new file
+        file = fopen(filename, "a+b");
+        fs->is_new = true;
+        RETURN_IF_NULL(file, "Can't open file");
+    }
     fs->file = file;
     fs->is_open = true;
+    file_get_file_size(fs, &fs->size);
     return OK;
 }
 
@@ -78,4 +86,16 @@ bool file_is_open(FileState *fs) {
     ASSERT_ARG_NOT_NULL(fs);
 
     return fs->is_open;
+}
+
+Result file_get_file_size(FileState *fs, size_t *file_size) {
+    ASSERT_ARG_NOT_NULL(fs);
+    ASSERT_ARG_NOT_NULL(file_size);
+
+    int res = fseek(fs->file, 0L, SEEK_END);
+    if (res != 0) {
+        return ERROR("Failed to set file offset");
+    }
+    *file_size = ftell(fs->file);
+    return OK;
 }
