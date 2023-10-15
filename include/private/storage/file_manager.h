@@ -11,7 +11,7 @@ struct __attribute__((packed)) FileHeaderConstants {
 
 typedef struct __attribute__((packed)) {
     uint32_t file_size;
-    uint32_t current_free_page;
+    int32_t current_free_page;
     uint32_t page_count;
 } FileHeaderDynamic;
 

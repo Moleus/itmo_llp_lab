@@ -1,4 +1,3 @@
-#include <assert.h>
 #include "private/storage/page_manager.h"
 
 //TODO: think if it's correct to include private header
@@ -6,7 +5,7 @@
 
 // Page Iterator
 PageIterator *page_iterator_new(PageManager *self) {
-    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(self)
 
     PageIterator *result = malloc(sizeof(PageIterator));
     ASSERT_NOT_NULL(result, FAILED_TO_ALLOCATE_MEMORY)
@@ -22,22 +21,22 @@ PageIterator *page_iterator_new(PageManager *self) {
 }
 
 void page_iterator_destroy(PageIterator *self) {
-    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(self)
     free(self);
 }
 
 bool page_iterator_has_next(PageIterator *self) {
-    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(self)
 
     uint32_t pages_count = page_manager_get_pages_count(self->page_manager);
     return self->next_page_id.id < pages_count;
 }
 
 Result page_iterator_next(PageIterator *self, Page **result) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_IS_NULL(*result);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_IS_NULL(*result)
     if (!page_iterator_has_next(self)) {
-        ABORT_EXIT(INTERNAL_LIB_ERROR, "No more pages in iterator");
+        ABORT_EXIT(INTERNAL_LIB_ERROR, "No more pages in iterator")
     }
 
     // TODO: check that it works
@@ -50,7 +49,7 @@ Result page_iterator_next(PageIterator *self, Page **result) {
 
 // Item Iterator
 ItemIterator *item_iterator_new(PageManager *page_manager) {
-    ASSERT_ARG_NOT_NULL(page_manager);
+    ASSERT_ARG_NOT_NULL(page_manager)
 
     ItemIterator *item_it = malloc(sizeof(ItemIterator));
     ASSERT_NOT_NULL(item_it, FAILED_TO_ALLOCATE_MEMORY)
@@ -61,13 +60,13 @@ ItemIterator *item_iterator_new(PageManager *page_manager) {
 }
 
 void item_iterator_destroy(ItemIterator *self) {
-    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(self)
     page_iterator_destroy(self->page_iterator);
     free(self);
 }
 
 bool item_iterator_has_next(ItemIterator *self) {
-    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(self)
     Page *cur_page = self->page_iterator->current_page;
 
     // Проверка когда нет первой страницы
@@ -89,7 +88,7 @@ bool item_iterator_has_next(ItemIterator *self) {
     while (page_iterator_has_next(self->page_iterator)) {
         cur_page = NULL;
         Result res = page_iterator_next(self->page_iterator, &cur_page);
-        ABORT_IF_FAIL(res, "Failed to get next page");
+        ABORT_IF_FAIL(res, "Failed to get next page")
         if (cur_page->page_header.items_count > 0) {
             LOG_DEBUG("ItemIterator - found item on page %d", cur_page->page_header.page_id.id);
             return true;
@@ -99,20 +98,20 @@ bool item_iterator_has_next(ItemIterator *self) {
 }
 
 Result item_iterator_next(ItemIterator *self, Item **result) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_IS_NULL(result);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_IS_NULL(*result)
 
     item_index_t old_item_index = self->current_item_index;
     Page *cur_page = self->page_iterator->current_page;
     uint32_t new_item_index = self->current_item_index.id++;
 
     if (!item_iterator_has_next(self)) {
-        ABORT_EXIT(INTERNAL_LIB_ERROR, "No more items in iterator");
+        ABORT_EXIT(INTERNAL_LIB_ERROR, "No more items in iterator")
     }
 
     if (new_item_index > cur_page->page_header.next_item_id.id) {
         LOG_ERR("Page: %d. Next item %d is on next page", cur_page, new_item_index);
-        ABORT_EXIT(INTERNAL_LIB_ERROR, "It should not be possible because has_next sets current_page or returns false");
+        ABORT_EXIT(INTERNAL_LIB_ERROR, "It should not be possible because has_next sets current_page or returns false")
     }
 
     Result res = page_get_item(cur_page, next_item(old_item_index), *result);
@@ -124,13 +123,13 @@ Result item_iterator_next(ItemIterator *self, Item **result) {
 // To top-level function which should be used to get items and pages
 // TODO: do we need to get pages? If not - remove this method
 PageIterator *page_manager_get_pages(PageManager *self) {
-    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(self)
 
     return page_iterator_new(self);
 }
 
 ItemIterator *page_manager_get_items(PageManager *self) {
-    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(self)
 
     return item_iterator_new(self);
 }

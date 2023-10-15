@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "private/storage/page_manager.h"
 
 //TODO: think if it's correct to include private header
@@ -16,7 +17,7 @@ PageManager *page_manager_new() {
 }
 
 Result page_manager_init(PageManager *self, const char *filename, uint32_t page_size, int32_t file_signature) {
-    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(self)
 
     //TODO: persist on disk page-manager's data in file-header.
     FileHeaderConstants header_for_new_file = {
@@ -35,6 +36,7 @@ Result page_manager_init(PageManager *self, const char *filename, uint32_t page_
     } else {
         page_manager_read_page(self, free_page_id, &current_free_page);
     }
+    assert(current_free_page != NULL);
     self->current_free_page = current_free_page;
 
     LOG_DEBUG("Page manager initialized. Pages count: %d. Free page: %d, ", page_manager_get_pages_count(self), free_page_id.id);
@@ -43,7 +45,7 @@ Result page_manager_init(PageManager *self, const char *filename, uint32_t page_
 }
 
 void page_manager_destroy(PageManager *self) {
-    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(self)
 
     file_manager_destroy(self->file_manager);
     // TODO: remove all pages from memory
@@ -69,8 +71,8 @@ void page_manager_after_page_read(PageManager *self, Page* page) {
 }
 
 Result page_manager_get_first_page_or_create(PageManager *self, Page **result) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_IS_NULL(*result);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_IS_NULL(*result)
 
     if (page_manager_get_pages_count(self) == 0) {
         return page_manager_page_new(self, result);
@@ -82,8 +84,8 @@ Result page_manager_get_first_page_or_create(PageManager *self, Page **result) {
  * Allocates new page
  */
 Result page_manager_page_new(PageManager *self, Page **page) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_IS_NULL(*page);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_IS_NULL(*page)
 
     page_index_t next_id = next_page(page_manager_get_last_page_id(self));
     *page = page_new(next_id, page_manager_get_page_size(self));
@@ -95,7 +97,7 @@ Result page_manager_page_new(PageManager *self, Page **page) {
     uint32_t page_size = page_manager_get_page_size(self);
     uint32_t page_offset_in_file = page_manager_get_page_offset(self, (*page)->page_header.page_id);
     Result page_write_res = file_manager_write(self->file_manager, page_offset_in_file, page_size,
-                                               page);
+                                               *page);
     // TODO: free page if fail
     RETURN_IF_FAIL(page_write_res, "Failed to write new page to file")
     LOG_DEBUG("Written page %d bytes %d to offset %08X", next_id.id, page_size, page_offset_in_file);
@@ -107,15 +109,15 @@ Result page_manager_page_new(PageManager *self, Page **page) {
 
 // TODO: why do we need this method?
 void page_manager_page_destroy(PageManager *self, Page *page) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(page);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_NOT_NULL(page)
 
     return page_destroy(page);
 }
 
 Result page_manager_flush_page(PageManager *self, Page *page) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(page);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_NOT_NULL(page)
 
     size_t offset_in_file = page_manager_get_page_offset(self, page->page_header.page_id);
     size_t size = page_size(page);
@@ -126,15 +128,15 @@ Result page_manager_flush_page(PageManager *self, Page *page) {
 
 // Private
 Result page_manager_get_page_from_ram(PageManager *self, page_index_t page_id, Page **result) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_IS_NULL(*result);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_IS_NULL(*result)
 
     // for each page in pages
     Page *current_page = self->pages;
     for (size_t i = 0; i < self->pages_in_memory; i++) {
         if (current_page == NULL) {
             LOG_ERR("Page from ram %d is null. Pages in memory: %d", i, self->pages_in_memory);
-            ABORT_EXIT(INTERNAL_LIB_ERROR, "Page in memory is null");
+            ABORT_EXIT(INTERNAL_LIB_ERROR, "Page in memory is null")
         }
         if (current_page->page_header.page_id.id == page_id.id) {
             *result = current_page;

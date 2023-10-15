@@ -20,5 +20,3 @@ Result file_manager_write_header(FileManager *self);
 
 Result file_manager_read(FileManager *self, size_t offset, size_t size, void *buffer);
 Result file_manager_write(FileManager *self, size_t offset, size_t size, void *buffer);
-
-Result file_manager_close(FileManager *self);

@@ -3,7 +3,7 @@
 #include "public/util/common.h"
 #include "stdint.h"
 
-typedef struct ItemPayload {
+typedef struct __attribute__((packed)) ItemPayload {
     void *data;
     uint32_t size;
 } ItemPayload;

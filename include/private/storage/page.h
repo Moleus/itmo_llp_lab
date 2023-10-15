@@ -7,10 +7,10 @@
 #define HEADER_SIZE sizeof(PageHeader)
 
 typedef struct item_index_t {
-    uint32_t id;
+    int32_t id;
 } item_index_t;
 
-static inline item_index_t item_id(uint32_t value) {
+static inline item_index_t item_id(int32_t value) {
     return (item_index_t) {.id = value};
 }
 
@@ -21,11 +21,11 @@ static inline item_index_t next_item(item_index_t self) {
 //#define NULL_ITEM (Item){.size=0, .data = NULL, .index_in_page = 0, .is_deleted = true}
 
 typedef struct page_index_t {
-    uint32_t id;
+    int32_t id;
 } page_index_t;
 #define NULL_PAGE_INDEX (page_index_t) {.id = -1}
 
-static inline page_index_t page_id(uint32_t value) {
+static inline page_index_t page_id(int32_t value) {
     return (page_index_t) {.id = value};
 }
 
@@ -33,7 +33,7 @@ static inline page_index_t next_page(page_index_t self) {
     return (page_index_t) {.id = self.id + 1};
 }
 
-struct PageHeader {
+struct __attribute__((packed)) PageHeader {
     page_index_t page_id;
     uint32_t page_size;
     // offset of this page in file
@@ -54,10 +54,6 @@ struct PagePayload {
     uint8_t *bytes;
 };
 
-static inline bool is_null_page(PagePayload page) {
-    return page.bytes == NULL;
-}
-
 struct Page {
     PageHeader page_header;
     PageInMemoryData page_metadata;
@@ -69,7 +65,7 @@ typedef struct {
     uint32_t bytes_left;
 } ItemWriteStatus;
 
-typedef struct ItemMetadata {
+typedef struct __attribute__((packed)) ItemMetadata {
     item_index_t item_id;
     uint32_t data_offset;
     uint32_t size;
@@ -78,7 +74,7 @@ typedef struct ItemMetadata {
 } ItemMetadata;
 
 // Reference to an item payload in a file
-struct Item {
+struct __attribute__((packed)) Item {
     ItemPayload payload;
     item_index_t index_in_page;
     bool is_deleted;
@@ -98,10 +94,6 @@ void page_destroy(Page *self);
 uint32_t page_get_payload_size(uint32_t page_size);
 
 Result page_add_item(Page *self, ItemPayload payload, ItemAddResult *item_add_result);
-
-Result page_add_split_item_start(Page *self, ItemPayload payload, ItemAddResult *item_add_result);
-
-Result page_add_split_item_end(Page *self, ItemPayload payload, ItemAddResult *item_add_result);
 
 Result page_delete_item(Page *self, Item *item);
 

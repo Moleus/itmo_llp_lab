@@ -9,14 +9,14 @@
  * If page doesn't exist in memory then it will be loaded from disk
  */
 Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_page) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_IS_NULL(*result_page);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_IS_NULL(*result_page)
 
     // NOTE: здесь мы выдаем ошибку, если страницы не существует.
     // Если мы хотим получить страницу и не знаем, есть она или нет -
     uint32_t pages_count = page_manager_get_pages_count(self);
     if (id.id >= pages_count) {
-        ABORT_EXIT(INTERNAL_LIB_ERROR, "Page doesn't exist");
+        ABORT_EXIT(INTERNAL_LIB_ERROR, "Page doesn't exist")
     }
 
     // check if page exists in ram
@@ -31,16 +31,20 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_
     // no. Because here we get page by id. And new only allocates new page
 
     // pass offset to file_manger and get page
-    size_t offset = page_manager_get_page_offset(self, id);
+    size_t page_offset_in_file = page_manager_get_page_offset(self, id);
     // load from disk
     // allocate page here
     uint32_t page_size = page_manager_get_page_size(self);
     Page *page = page_new(id, page_size);
     // read header
-    res = file_manager_read(self->file_manager, offset, sizeof(PageHeader), page);
+    res = file_manager_read(self->file_manager, page_offset_in_file, sizeof(PageHeader), page);
     RETURN_IF_FAIL(res, "Failed to read page header from file")
     // read payload
-    res = file_manager_read(self->file_manager, offset + sizeof(PageHeader), page_get_payload_size(page_size),
+    LOG_DEBUG("Read header of page %d. Offset: %08X, items count: %d, free space: ", id.id,
+              page_offset_in_file, page->page_header.items_count,
+              page->page_header.free_space_end_offset - page->page_header.free_space_start_offset);
+    res = file_manager_read(self->file_manager, page_offset_in_file + sizeof(PageHeader),
+                            page_get_payload_size(page_size),
                             page->page_payload.bytes);
     RETURN_IF_FAIL(res, "Failed to read page payload from file")
 
@@ -48,6 +52,7 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_
     // TODO: возможная проблема. Каким-то образом, в связном списке одна страница может оказаться дважды.
     // Если мы будем вычитывать страницу с диска несколько раз.
     page_manager_after_page_read(self, page);
+    *result_page = page;
     // TODO: удалять страницу из памяти, после использования.
 
     return OK;

@@ -1,4 +1,5 @@
 #include "private/storage/file_manager.h"
+#include "private/storage/page.h"
 
 FileManager *file_manager_new() {
     FileManager *fm = malloc(sizeof(FileManager));
@@ -11,18 +12,18 @@ FileManager *file_manager_new() {
 }
 
 void file_manager_destroy(FileManager *self) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(self->file);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_NOT_NULL(self->file)
 
     Result res = file_close(self->file);
-    ABORT_IF_FAIL(res, "Failed to close file");
+    ABORT_IF_FAIL(res, "Failed to close file")
     file_destroy(self->file);
     free(self);
 }
 
 Result file_manager_init(FileManager *self, const char *filename, FileHeaderConstants header_for_new_file) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(filename);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_NOT_NULL(filename)
 
     Result res = file_manager_open(self, filename);
     RETURN_IF_FAIL(res, "Failed to open file")
@@ -46,55 +47,49 @@ Result file_manager_init(FileManager *self, const char *filename, FileHeaderCons
         return ERROR("File signature doesn't match");
     }
 
-    LOG_INFO("File manager initialized. Signature: %x, File size: %d. Page size: %d ", self->header.constants.signature,
-             self->header.dynamic.file_size, self->header.constants.page_size);
+    LOG_INFO("File manager initialized. Signature: %x, File size: %d. Page size: %d. Page header size: %d", self->header.constants.signature,
+             self->header.dynamic.file_size, self->header.constants.page_size, sizeof(PageHeader));
 
     return OK;
 }
 
 Result file_manager_open(FileManager *self, const char *filename) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(filename);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_NOT_NULL(filename)
 
     return file_open(self->file, filename);
 }
 
 Result file_manager_read_header(FileManager *self) {
-    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(self)
 
     return file_read(self->file, (void *) &self->header, 0, sizeof(FileHeader));
 }
 
 Result file_manager_write_header(FileManager *self) {
-    ASSERT_ARG_NOT_NULL(self);
+    ASSERT_ARG_NOT_NULL(self)
 
     self->header.dynamic.file_size = sizeof(FileHeader) + self->header.dynamic.page_count * self->header.constants.page_size;
     return file_write(self->file, &self->header.constants, 0, sizeof(FileHeader));
 }
 
 Result file_manager_read(FileManager *self, size_t offset, size_t size, void *buffer) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(buffer);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_NOT_NULL(buffer)
 
     return file_read(self->file, buffer, offset, size);
 }
 
 Result file_manager_write(FileManager *self, size_t offset, size_t size, void *buffer) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(buffer);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_NOT_NULL(buffer)
 
     return file_write(self->file, buffer, offset, size);
 }
 
-Result file_manager_close(FileManager *self) {
-    ASSERT_ARG_NOT_NULL(self);
-
-    return file_close(self->file);
-}
-
 Result file_manager_get_file_size(FileManager *self, size_t *file_size) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(file_size);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_NOT_NULL(file_size)
 
     *file_size = self->header.dynamic.file_size;
     return OK;

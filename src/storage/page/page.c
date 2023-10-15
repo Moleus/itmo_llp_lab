@@ -1,6 +1,5 @@
 #include <assert.h>
 #include "private/storage/page.h"
-#include "private/storage/file_manager.h"
 
 /*
  * Represents only in-memory page data
@@ -30,8 +29,8 @@ Page *page_new(page_index_t page_id, uint32_t page_size) {
 }
 
 void page_destroy(Page *self) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(self->page_payload.bytes);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_NOT_NULL(self->page_payload.bytes)
 
     LOG_DEBUG("Freeing page with id %d", self->page_header.page_id.id);
     free(self->page_payload.bytes);
@@ -45,8 +44,8 @@ static ItemMetadata get_metadata(const Page *self, item_index_t item_id) {
 // TODO: change public signature so user won't know anything about id and use just pointer
 // maybe we don't even need this one
 Result page_get_item(Page *self, item_index_t item_id, Item *item) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(item);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_NOT_NULL(item)
 
     LOG_DEBUG("Getting item with id %d", item_id.id);
     if (item_id.id >= self->page_header.next_item_id.id) {
@@ -93,12 +92,12 @@ Result page_update_header_after_add(Page *self, ItemPayload payload, ItemAddResu
 
 // public
 Result page_add_item(Page *self, ItemPayload payload, ItemAddResult *item_add_result) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(item_add_result);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_NOT_NULL(item_add_result)
 
     if (payload.size > page_get_payload_available_space(self)) {
         LOG_WARN("Add failed. Page: %d, Available space: %d, payload size: %d", self->page_header.page_id.id, page_get_payload_available_space(self), payload.size);
-        ABORT_EXIT(INTERNAL_LIB_ERROR, "Can't add item to this page. Not enough space for metadata");
+        ABORT_EXIT(INTERNAL_LIB_ERROR, "Can't add item to this page. Not enough space for metadata")
     }
 
     size_t free_space_size = page_get_free_space_left(self);
@@ -118,8 +117,8 @@ Result page_add_item(Page *self, ItemPayload payload, ItemAddResult *item_add_re
 }
 
 Result page_delete_item(Page *self, Item *item) {
-    ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_NOT_NULL(item);
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_NOT_NULL(item)
     assert(!item->is_deleted);
     assert(item->index_in_page.id < self->page_header.next_item_id.id);
 
@@ -139,7 +138,7 @@ Result page_delete_item(Page *self, Item *item) {
 
         // decrement next_item_id until we find not deleted item
         // TODO: write updated page_header on disk
-        uint32_t last_item_index = self->page_header.next_item_id.id--;
+        int32_t last_item_index = self->page_header.next_item_id.id--;
         while (self->page_header.next_item_id.id > 0 && get_metadata(self, item_id(last_item_index)).is_deleted) {
             // TODO: does it change actual data in memory?
             last_item_index = self->page_header.next_item_id.id--;

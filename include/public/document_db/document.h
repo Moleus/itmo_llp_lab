@@ -4,7 +4,7 @@
 #include "public/storage/page_manager.h"
 #include "node.h"
 
-typedef struct {
+typedef struct __attribute__((packed)) {
     Node *root_node;
     PageManager *page_manager;
     bool init_done;

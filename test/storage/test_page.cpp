@@ -8,7 +8,7 @@ extern "C" {
 TEST(test_page, page_add_item) {
     page_index_t id = page_id(0);
     uint32_t size = 1024;
-    Page *page = page_new(id, size);;
+    Page *page = page_new(id, size);
     EXPECT_EQ(page->page_header.page_id.id, id.id);
 
     ItemPayload payload;

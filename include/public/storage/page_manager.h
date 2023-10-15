@@ -55,5 +55,3 @@ Result page_manager_delete_item(PageManager *self, Page *page, Item *item);
 
 // free page management
 Result page_manager_get_page_for_data(PageManager *self, ItemPayload data, Page **result);
-
-Result page_manager_get_first_page_or_create(PageManager *self, Page **result);
