@@ -3,9 +3,10 @@
 #include "public/util/common.h"
 #include "stdint.h"
 
-typedef struct __attribute__((packed)) ItemPayload {
-    void *data;
+// we don't store it on disk
+typedef struct ItemPayload {
     uint32_t size;
+    void *data;
 } ItemPayload;
 
 typedef struct Item Item;

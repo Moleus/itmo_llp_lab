@@ -59,9 +59,10 @@ struct __attribute__((packed)) Page {
 
 typedef struct {
     bool complete;
-    uint32_t bytes_left;
+    uint32_t bytes_written;
 } ItemWriteStatus;
 
+// we store it on disk
 typedef struct __attribute__((packed)) ItemMetadata {
     item_index_t item_id;
     uint32_t data_offset;
@@ -70,11 +71,11 @@ typedef struct __attribute__((packed)) ItemMetadata {
     page_index_t continues_on_page;
 } ItemMetadata;
 
-// Reference to an item payload in a file
-struct __attribute__((packed)) Item {
-    ItemPayload payload;
+// don't store on disk
+struct Item {
     item_index_t index_in_page;
     bool is_deleted;
+    ItemPayload payload;
 };
 
 typedef struct {
@@ -94,7 +95,7 @@ Result page_add_item(Page *self, ItemPayload payload, ItemAddResult *item_add_re
 
 Result page_delete_item(Page *self, Item *item);
 
-Result page_get_item(Page *self, item_index_t item_id, Item **item);
+Result page_get_item(Page *self, item_index_t item_id, Item *item);
 
 uint32_t page_get_free_space_left(Page *self);
 

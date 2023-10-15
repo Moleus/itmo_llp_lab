@@ -236,6 +236,7 @@ Result document_get_all_children(Document *self, GetAllChildrenRequest *request,
         Item *item = NULL;
         Result get_item_res = item_iterator_next(items_it, &item);
         RETURN_IF_FAIL(get_item_res, "failed to bulk add node")
+        // TODO: important: don't keep pointer. But user
         Node *tmp_node = item->payload.data;
         if (node_id_eq(tmp_node->parent_id, request->node->id)) {
             nodes[i++] = *tmp_node;

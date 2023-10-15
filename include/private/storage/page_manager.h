@@ -53,6 +53,6 @@ size_t page_manager_get_page_offset(PageManager *self, page_index_t page_id);
 
 page_index_t page_manager_get_last_page_id(PageManager *self);
 
-void page_manager_after_page_read(PageManager *self, Page* page);
+void page_manager_add_page_to_cache(PageManager *self, Page* page);
 
 size_t convert_to_file_offset(PageManager *self, page_index_t page_id, size_t offset_in_page);

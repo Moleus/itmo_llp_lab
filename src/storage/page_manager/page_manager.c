@@ -60,7 +60,7 @@ void page_manager_destroy(PageManager *self) {
 }
 
 // call only when reading new page from disk or creating
-void page_manager_after_page_read(PageManager *self, Page* page) {
+void page_manager_add_page_to_cache(PageManager *self, Page* page) {
     // it's first page
     if (self->meta_pages == NULL) {
         self->meta_pages = malloc(sizeof(PageMetaInfo));
@@ -105,7 +105,7 @@ Result page_manager_page_new(PageManager *self, Page **page) {
     RETURN_IF_FAIL(page_write_res, "Failed to write new page to file")
     LOG_DEBUG("Written page %d bytes %d to offset %08X", next_id.id, page_size, page_offset_in_file);
 
-    page_manager_after_page_read(self, *page);
+    page_manager_add_page_to_cache(self, *page);
 
     return OK;
 }

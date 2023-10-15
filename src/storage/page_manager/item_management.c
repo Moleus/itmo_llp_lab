@@ -36,6 +36,7 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
 
     ItemAddResult tmp_add_result = *item_add_result;
     // if we don't have enough space in page then we need to allocate new page and place left data there
+    uint32_t bytes_written = item_add_result->write_status.bytes_written;
     while (tmp_add_result.write_status.complete == false) {
         Page *free_page = NULL;
         res = page_manager_page_new(self, &free_page);
@@ -45,11 +46,13 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
         res = page_manager_set_current_free_page(self, free_page);
         ABORT_IF_FAIL(res, "Failed to update current free page")
         ItemPayload payload_to_write = {
-                .data = payload.data + item_add_result->write_status.bytes_left,
-                .size = item_add_result->write_status.bytes_left
+                // TODO: can add pointers?
+                .data = payload.data + bytes_written,
+                .size = payload.size - bytes_written
         };
         res = page_add_item(free_page, payload_to_write, &tmp_add_result);
         ABORT_IF_FAIL(res, "Failed to add other large part of item to page in memory")
+        bytes_written += tmp_add_result.write_status.bytes_written;
         tmp_add_result.metadata.continues_on_page = free_page->page_header.page_id;
 
         // persist second part

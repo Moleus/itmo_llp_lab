@@ -11,7 +11,7 @@ extern "C" {
 
 ItemPayload get_payload() {
     ItemPayload payload = {
-            .data = (uint8_t *) "testtest",
+            .data = (uint8_t *) "\x00\x01\x02\x03\x04\x05\x06\x07",
             .size = 8
     };
     return payload;
@@ -70,5 +70,5 @@ TEST(test_page_manager, test_add_after_delete) {
     ASSERT_EQ(pm->current_free_page->page_header.free_space_end_offset, PAGE_SIZE - 8 * 2);
     ASSERT_EQ(pm->current_free_page->page_header.next_item_id.id, 2);
     page_get_item(pm->current_free_page, add_result1.metadata.item_id, &item);
-    ASSERT_EQ(((ItemMetadata*)pm->current_free_page->page_payload.bytes)->is_deleted, true);
+    ASSERT_EQ(item->is_deleted, true);
 }

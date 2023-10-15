@@ -33,13 +33,21 @@ void page_destroy(Page *self) {
     free(self);
 }
 
-static ItemMetadata get_metadata(const Page *self, item_index_t item_id) {
-    return ((ItemMetadata *) self->page_payload)[item_id.id];
+static ItemMetadata *get_metadata(const Page *self, item_index_t item_id) {
+    return (ItemMetadata *) (self->page_payload + sizeof(ItemMetadata) * item_id.id);
+}
+
+static uint8_t *get_item_data_addr(const Page *self, uint32_t data_offset) {
+    return ((uint8_t *) self) + data_offset;
+}
+
+static Item create_item(const Page *self, ItemPayload payload) {
+    return (Item) {.is_deleted = false, .index_in_page = self->page_header.next_item_id, .payload = payload};
 }
 
 // TODO: change public signature so user won't know anything about id and use just pointer
 // maybe we don't even need this one
-Result page_get_item(Page *self, item_index_t item_id, Item **item) {
+Result page_get_item(Page *self, item_index_t item_id, Item *item) {
     ASSERT_ARG_NOT_NULL(self)
     ASSERT_ARG_NOT_NULL(item)
 
@@ -48,19 +56,38 @@ Result page_get_item(Page *self, item_index_t item_id, Item **item) {
         return ERROR("Item id is out of range");
     }
 
+
+    //TODO: привести все к формату, где создание item и укладываение в память будет в выделенной функции
+    // продумать, что мы будем делать, когда страница выгрузится из памяти?
+    // как возможное решение - копировать результат на уровне клиента.
+
     // TODO: check this address magic in tests
-    ItemMetadata metadata = get_metadata(self, item_id);
-    assert(metadata.is_deleted == false);
+    ItemMetadata *metadata = get_metadata(self, item_id);
+    assert(metadata->is_deleted == false);
     assert(self->page_header.next_item_id.id > item_id.id);
 
     // TODO: check that item pointer is assigned correctly
-    *item = (Item *) (((uint8_t *)self) + metadata.data_offset);
+    *item = create_item(self, (ItemPayload) {.data = get_item_data_addr(self, metadata->data_offset), .size = metadata->size});
 
     return OK;
 }
 
+void page_put_item_metadata_in_page(Page *self, ItemMetadata source) {
+    ASSERT_ARG_NOT_NULL(self)
+
+    ItemMetadata *dest = get_metadata(self, source.item_id);
+    memcpy(dest, &source, sizeof(ItemMetadata));
+}
+
+void page_put_item_data_in_page(Page *self, ItemPayload payload, uint32_t data_offset) {
+    ASSERT_ARG_NOT_NULL(self)
+
+    uint8_t *addr = get_item_data_addr(self, data_offset);
+    memcpy(addr, payload.data, payload.size);
+}
+
 // private
-Result page_update_header_after_add(Page *self, ItemPayload payload, ItemAddResult *item_add_result) {
+Result page_add_item_update_header(Page *self, ItemPayload payload, ItemAddResult *item_add_result) {
     // we place data in the reverse order staring from page end
     uint32_t data_offset = self->page_header.free_space_end_offset - payload.size;
     item_index_t item_id = self->page_header.next_item_id;
@@ -74,7 +101,7 @@ Result page_update_header_after_add(Page *self, ItemPayload payload, ItemAddResu
     *item_add_result = (ItemAddResult) {
             .metadata_offset_in_page = self->page_header.free_space_start_offset,
             .metadata = metadata,
-            .write_status = (ItemWriteStatus) {.complete = true, .bytes_left = 0 }
+            .write_status = (ItemWriteStatus) {.complete = true, .bytes_written = payload.size}
     };
     self->page_header.free_space_start_offset =
             item_add_result->metadata_offset_in_page + (uint32_t) sizeof(ItemMetadata);
@@ -82,8 +109,13 @@ Result page_update_header_after_add(Page *self, ItemPayload payload, ItemAddResu
     self->page_header.next_item_id.id++;
     self->page_header.items_count++;
 
-    LOG_DEBUG("Page header update, offsets: %d/%d, item id: %d, payload size: %d",
-              self->page_header.free_space_start_offset, self->page_header.free_space_end_offset, item_id.id, payload.size);
+    LOG_DEBUG("Page header update, offsets: %d/%d, item id: %d, payload size: %d, total items: %d, next_item_id: %d",
+              self->page_header.free_space_start_offset, self->page_header.free_space_end_offset, item_id.id,
+              payload.size, self->page_header.items_count, self->page_header.next_item_id.id);
+
+    page_put_item_metadata_in_page(self, metadata);
+    page_put_item_data_in_page(self, payload, data_offset);
+
     return OK;
 }
 
@@ -93,22 +125,24 @@ Result page_add_item(Page *self, ItemPayload payload, ItemAddResult *item_add_re
     ASSERT_ARG_NOT_NULL(item_add_result)
 
     if (payload.size > page_get_payload_available_space(self)) {
-        LOG_WARN("Add failed. Page: %d, Available space: %d, payload size: %d", self->page_header.page_id.id, page_get_payload_available_space(self), payload.size);
+        LOG_WARN("Add failed. Page: %d, Available space: %d, payload size: %d", self->page_header.page_id.id,
+                 page_get_payload_available_space(self), payload.size);
         ABORT_EXIT(INTERNAL_LIB_ERROR, "Can't add item to this page. Not enough space for metadata")
     }
 
     size_t free_space_size = page_get_free_space_left(self);
     if (payload.size > free_space_size) {
-        LOG_INFO("Large payload. Page: %d, Available space: %d, payload size: %d", self->page_header.page_id.id, page_get_payload_available_space(self), payload.size);
+        LOG_INFO("Large payload. Page: %d, Available space: %d, payload size: %d", self->page_header.page_id.id,
+                 page_get_payload_available_space(self), payload.size);
         // we can only write part of the payload. Split it into two parts
         ItemPayload partial_payload_head = payload;
         partial_payload_head.size = page_get_payload_available_space(self);
-        page_update_header_after_add(self, partial_payload_head, item_add_result);
+        page_add_item_update_header(self, partial_payload_head, item_add_result);
         item_add_result->write_status.complete = false;
-        item_add_result->write_status.bytes_left = payload.size - partial_payload_head.size;
+        item_add_result->write_status.bytes_written = partial_payload_head.size;
         return OK;
     }
-    page_update_header_after_add(self, payload, item_add_result);
+    page_add_item_update_header(self, payload, item_add_result);
 
     return OK;
 }
@@ -120,7 +154,7 @@ Result page_delete_item(Page *self, Item *item) {
     assert(item->index_in_page.id < self->page_header.next_item_id.id);
 
     LOG_DEBUG("Page: %d. Deleting item with id %d", self->page_header.page_id.id, item->index_in_page.id);
-    ItemMetadata metadata = get_metadata(self, item->index_in_page);
+    ItemMetadata *metadata = get_metadata(self, item->index_in_page);
 
     free(item->payload.data);
     item->is_deleted = true;
@@ -132,7 +166,7 @@ Result page_delete_item(Page *self, Item *item) {
         LOG_DEBUG("Page %d. Deleted last item %d", self->page_header.page_id.id, item->index_in_page.id);
         // increase free space by removing deleted data
         self->page_header.free_space_start_offset -= sizeof(ItemMetadata);
-        self->page_header.free_space_end_offset += metadata.size;
+        self->page_header.free_space_end_offset += metadata->size;
 
         // decrement next_item_id until we find not deleted item
         // TODO: write updated page_header on disk
@@ -141,7 +175,8 @@ Result page_delete_item(Page *self, Item *item) {
             // TODO: does it change actual data in memory?
             last_item_index = self->page_header.next_item_id.id--;
         }
-        LOG_DEBUG("Page %d. Updated next_item_id to %d after deletion", self->page_header.page_id.id, self->page_header.next_item_id.id);
+        LOG_DEBUG("Page %d. Updated next_item_id to %d after deletion", self->page_header.page_id.id,
+                  self->page_header.next_item_id.id);
         // TODO: check if we can assign null item?
         //        *item = NULL_ITEM;
     }
