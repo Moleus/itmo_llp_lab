@@ -26,8 +26,8 @@ typedef struct __attribute__((packed)) {
 } NodeValue;
 
 typedef struct __attribute__((packed)) {
-    uint32_t page_id;
-    uint32_t item_id;
+    int32_t page_id;
+    int32_t item_id;
 } node_id_t;
 
 static const node_id_t ROOT_NODE_ID = {0, 0};

@@ -45,19 +45,16 @@ struct __attribute__((packed)) PageHeader {
     uint32_t free_space_end_offset;
 };
 
-typedef struct PageInMemoryData PageInMemoryData;
-struct PageInMemoryData {
-   Page* next_page;
+typedef struct PageMetaInfo PageMetaInfo;
+
+struct PageMetaInfo{
+    Page *rawPage;
+    PageMetaInfo *next_page;
 };
 
-struct PagePayload {
-    uint8_t *bytes;
-};
-
-struct Page {
+struct __attribute__((packed)) Page {
     PageHeader page_header;
-    PageInMemoryData page_metadata;
-    PagePayload page_payload;
+    uint8_t page_payload[];
 };
 
 typedef struct {
@@ -86,7 +83,7 @@ typedef struct {
     ItemWriteStatus write_status;
 } ItemAddResult;
 
-Page * page_new(page_index_t page_id, uint32_t page_size);
+Page *page_new(page_index_t page_id, uint32_t page_size);
 
 void page_destroy(Page *self);
 
@@ -97,7 +94,7 @@ Result page_add_item(Page *self, ItemPayload payload, ItemAddResult *item_add_re
 
 Result page_delete_item(Page *self, Item *item);
 
-Result page_get_item(Page *self, item_index_t item_id, Item *item);
+Result page_get_item(Page *self, item_index_t item_id, Item **item);
 
 uint32_t page_get_free_space_left(Page *self);
 

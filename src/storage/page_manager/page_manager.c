@@ -10,7 +10,7 @@ PageManager *page_manager_new() {
     PageManager *pm = malloc(sizeof(PageManager));
     ASSERT_NOT_NULL(pm, FAILED_TO_ALLOCATE_MEMORY)
     pm->file_manager = file_manager_new();
-    pm->pages = NULL;
+    pm->meta_pages = NULL;
     pm->pages_in_memory = 0;
     pm->current_free_page = NULL;
     return pm;
@@ -50,9 +50,10 @@ void page_manager_destroy(PageManager *self) {
     file_manager_destroy(self->file_manager);
     // TODO: remove all pages from memory
     for (size_t i = 0; i < self->pages_in_memory; i++) {
-        Page *next_page = self->pages->page_metadata.next_page;
-        page_destroy(self->pages);
-        self->pages = next_page;
+        PageMetaInfo *next_page = self->meta_pages->next_page;
+        page_destroy(self->meta_pages->rawPage);
+        free(self->meta_pages);
+        self->meta_pages = next_page;
     }
     // TODO: check that we don't do double-free
     // free(self->current_free_page);
@@ -61,11 +62,13 @@ void page_manager_destroy(PageManager *self) {
 // call only when reading new page from disk or creating
 void page_manager_after_page_read(PageManager *self, Page* page) {
     // it's first page
-    if (self->pages == NULL) {
-        self->pages = page;
+    if (self->meta_pages == NULL) {
+        self->meta_pages = malloc(sizeof(PageMetaInfo));
+        self->meta_pages->rawPage = page;
     } else {
-        LOG_DEBUG("Adding page %d to pages list. Previous was %d", page->page_header.page_id.id, self->pages->page_header.page_id.id);
-        self->pages->page_metadata.next_page = page;
+        LOG_DEBUG("Adding page %d to pages list. Previous was %d", page->page_header.page_id.id, self->meta_pages->rawPage->page_header.page_id.id);
+        self->meta_pages->next_page = malloc(sizeof(PageMetaInfo));
+        self->meta_pages->next_page->rawPage = page;
     }
     self->pages_in_memory++;
 }
@@ -132,17 +135,17 @@ Result page_manager_get_page_from_ram(PageManager *self, page_index_t page_id, P
     ASSERT_ARG_IS_NULL(*result)
 
     // for each page in pages
-    Page *current_page = self->pages;
+    PageMetaInfo *current_page = self->meta_pages;
     for (size_t i = 0; i < self->pages_in_memory; i++) {
         if (current_page == NULL) {
             LOG_ERR("Page from ram %d is null. Pages in memory: %d", i, self->pages_in_memory);
             ABORT_EXIT(INTERNAL_LIB_ERROR, "Page in memory is null")
         }
-        if (current_page->page_header.page_id.id == page_id.id) {
-            *result = current_page;
+        if (current_page->rawPage->page_header.page_id.id == page_id.id) {
+            *result = current_page->rawPage;
             return OK;
         }
-        current_page = current_page->page_metadata.next_page;
+        current_page = current_page->next_page;
     }
     return ERROR("Page not found in ram");
 }

@@ -101,20 +101,20 @@ Result item_iterator_next(ItemIterator *self, Item **result) {
     ASSERT_ARG_NOT_NULL(self)
     ASSERT_ARG_IS_NULL(*result)
 
-    item_index_t old_item_index = self->current_item_index;
-    Page *cur_page = self->page_iterator->current_page;
-    uint32_t new_item_index = self->current_item_index.id++;
-
     if (!item_iterator_has_next(self)) {
         ABORT_EXIT(INTERNAL_LIB_ERROR, "No more items in iterator")
     }
+
+    item_index_t old_item_index = self->current_item_index;
+    Page *cur_page = self->page_iterator->current_page;
+    int32_t new_item_index = ++self->current_item_index.id;
 
     if (new_item_index > cur_page->page_header.next_item_id.id) {
         LOG_ERR("Page: %d. Next item %d is on next page", cur_page, new_item_index);
         ABORT_EXIT(INTERNAL_LIB_ERROR, "It should not be possible because has_next sets current_page or returns false")
     }
 
-    Result res = page_get_item(cur_page, next_item(old_item_index), *result);
+    Result res = page_get_item(cur_page, next_item(old_item_index), result);
     RETURN_IF_FAIL(res, "Failed to get item from page")
     self->current_item = *result;
     return OK;

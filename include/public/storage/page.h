@@ -14,6 +14,4 @@ typedef struct PageHeader PageHeader;
 
 typedef struct Page Page;
 
-typedef struct PagePayload PagePayload;
-
 size_t page_size(Page *self);

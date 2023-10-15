@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "private/storage/page_manager.h"
 
 //TODO: think if it's correct to include private header
@@ -6,30 +7,13 @@
 
 #define ITEM_METADATA_SIZE ((int32_t) sizeof(ItemMetadata))
 
-Result persist_item_on_disk(PageManager *self, Page *page, ItemPayload *payload, ItemAddResult *add_result) {
-    uint32_t metadata_offset = add_result->metadata_offset_in_page;
-    uint32_t data_offset = add_result->metadata.data_offset;
-    ItemMetadata metadata = add_result->metadata;
-
-    size_t metadata_offset_in_file = convert_to_file_offset(self, page->page_header.page_id, metadata_offset);
-    Result res = file_manager_write(self->file_manager, metadata_offset_in_file, ITEM_METADATA_SIZE,
-                                    (void *) &metadata);
-    //TODO: think about operation rollback. we might need to remove added item from page if fail
-    RETURN_IF_FAIL(res, "Failed to write item metadata to file")
-
-    // persist data on disk
-    // TODO: сохранять по одному элементу в файл - плохая идея. Сохранять нужно по страницам
-    size_t data_offset_in_file = convert_to_file_offset(self, page->page_header.page_id, data_offset);
-    res = file_manager_write(self->file_manager, data_offset_in_file, (*payload).size, (*payload).data);
-    RETURN_IF_FAIL(res, "Failed to write item data to file")
-    LOG_DEBUG("Write data on disk. Offset: %08X, size: %d", data_offset_in_file, (*payload).size);
-
-    // persist header on disk
-    size_t header_offset_in_file = page_manager_get_page_offset(self, page->page_header.page_id);
-    res = file_manager_write(self->file_manager, header_offset_in_file, sizeof(PageHeader), &page->page_header);
+Result write_page_on_disk(PageManager *self, Page *page) {
+    // persist page on disk
+    size_t page_offset_in_file = page_manager_get_page_offset(self, page->page_header.page_id);
+    uint32_t page_size = page_manager_get_page_size(self);
+    Result res = file_manager_write(self->file_manager, page_offset_in_file, page_size, page);
     RETURN_IF_FAIL(res, "Failed to write page header to file")
-    LOG_DEBUG("Saved page %d header on disk. Offset: %08X, size: %d", page->page_header.page_id.id,
-              header_offset_in_file, sizeof(PageHeader));
+    LOG_DEBUG("Saved page %d on disk", page->page_header.page_id.id);
 
     return OK;
 }
@@ -43,11 +27,12 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
     Result res = page_add_item(page, payload, item_add_result);
     RETURN_IF_FAIL(res, "Failed to add item to page in memory")
 
-    LOG_DEBUG("Add item %d to page %d. iSize: %d. Status: %b. Offset in Page %d", item_add_result->metadata.item_id.id,
+    assert(item_add_result->metadata_offset_in_page >= sizeof(PageHeader));
+    LOG_DEBUG("Add item %d to page %d. iSize: %d. Status: %b. Offset in Page %d. Total items: %d", item_add_result->metadata.item_id.id,
               page->page_header.page_id.id, item_add_result->metadata.size, item_add_result->write_status.complete,
-              item_add_result->metadata_offset_in_page);
+              item_add_result->metadata_offset_in_page, page->page_header.items_count);
     // Persist head of the item on disk. We return only info about the first part in itemAddResult
-    persist_item_on_disk(self, page, &payload, item_add_result);
+    write_page_on_disk(self, page);
 
     ItemAddResult tmp_add_result = *item_add_result;
     // if we don't have enough space in page then we need to allocate new page and place left data there
@@ -68,7 +53,7 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
         tmp_add_result.metadata.continues_on_page = free_page->page_header.page_id;
 
         // persist second part
-        res = persist_item_on_disk(self, page, &payload, &tmp_add_result);
+        res = write_page_on_disk(self, free_page);
         ABORT_IF_FAIL(res, "Failed to write part of large payload to file")
 
         // TODO: check

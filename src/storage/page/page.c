@@ -8,15 +8,14 @@
  */
 Page *page_new(page_index_t page_id, uint32_t page_size) {
     // TODO: rethink payload allocation
-    uint8_t *payload = malloc(page_get_payload_size(page_size));
-    ASSERT_NOT_NULL(payload, FAILED_TO_ALLOCATE_MEMORY)
-    Page *result = malloc(sizeof(Page));
+    Page *result = malloc(page_size);
     ASSERT_NOT_NULL(result, FAILED_TO_ALLOCATE_MEMORY)
 
     LOG_DEBUG("Allocated page with id %d, size: %d", page_id.id, page_size);
 
     PageHeader header = {
             .page_id = page_id,
+            .items_count = 0,
             .next_item_id = 0,
             .free_space_start_offset = HEADER_SIZE,
             .free_space_end_offset = page_size,
@@ -24,26 +23,23 @@ Page *page_new(page_index_t page_id, uint32_t page_size) {
     };
 
     result->page_header = header;
-    result->page_payload.bytes = payload;
     return result;
 }
 
 void page_destroy(Page *self) {
     ASSERT_ARG_NOT_NULL(self)
-    ASSERT_ARG_NOT_NULL(self->page_payload.bytes)
 
     LOG_DEBUG("Freeing page with id %d", self->page_header.page_id.id);
-    free(self->page_payload.bytes);
     free(self);
 }
 
 static ItemMetadata get_metadata(const Page *self, item_index_t item_id) {
-    return ((ItemMetadata *) self->page_payload.bytes)[item_id.id];
+    return ((ItemMetadata *) self->page_payload)[item_id.id];
 }
 
 // TODO: change public signature so user won't know anything about id and use just pointer
 // maybe we don't even need this one
-Result page_get_item(Page *self, item_index_t item_id, Item *item) {
+Result page_get_item(Page *self, item_index_t item_id, Item **item) {
     ASSERT_ARG_NOT_NULL(self)
     ASSERT_ARG_NOT_NULL(item)
 
@@ -58,7 +54,7 @@ Result page_get_item(Page *self, item_index_t item_id, Item *item) {
     assert(self->page_header.next_item_id.id > item_id.id);
 
     // TODO: check that item pointer is assigned correctly
-    *item = *(Item *) (self->page_payload.bytes + metadata.data_offset);
+    *item = (Item *) (((uint8_t *)self) + metadata.data_offset);
 
     return OK;
 }
@@ -84,6 +80,7 @@ Result page_update_header_after_add(Page *self, ItemPayload payload, ItemAddResu
             item_add_result->metadata_offset_in_page + (uint32_t) sizeof(ItemMetadata);
     self->page_header.free_space_end_offset = data_offset;
     self->page_header.next_item_id.id++;
+    self->page_header.items_count++;
 
     LOG_DEBUG("Page header update, offsets: %d/%d, item id: %d, payload size: %d",
               self->page_header.free_space_start_offset, self->page_header.free_space_end_offset, item_id.id, payload.size);
@@ -133,6 +130,7 @@ Result page_delete_item(Page *self, Item *item) {
     // also, we should do defragmentation once in a time
     if (item->index_in_page.id == self->page_header.next_item_id.id - 1) {
         LOG_DEBUG("Page %d. Deleted last item %d", self->page_header.page_id.id, item->index_in_page.id);
+        // increase free space by removing deleted data
         self->page_header.free_space_start_offset -= sizeof(ItemMetadata);
         self->page_header.free_space_end_offset += metadata.size;
 
@@ -148,5 +146,6 @@ Result page_delete_item(Page *self, Item *item) {
         //        *item = NULL_ITEM;
     }
 
+    assert(item->is_deleted);
     return OK;
 }
