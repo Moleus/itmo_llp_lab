@@ -2,8 +2,8 @@
 
 #define HEADER_SIZE sizeof(PageHeader)
 
-int32_t page_get_payload_size(int32_t page_size) {
-    return page_size - (int32_t) HEADER_SIZE;
+uint32_t page_get_payload_size(uint32_t page_size) {
+    return page_size - (uint32_t) HEADER_SIZE;
 }
 
 /*
@@ -11,7 +11,7 @@ int32_t page_get_payload_size(int32_t page_size) {
  * It doesn't have access to disk
  * Allocates new page. Assigns id
  */
-Page *page_new(page_index_t page_id, int32_t page_size) {
+Page *page_new(page_index_t page_id, uint32_t page_size) {
     // TODO: rethink payload allocation
     uint8_t *payload = malloc(page_get_payload_size(page_size));
     ASSERT_NOT_NULL(payload, FAILED_TO_ALLOCATE_MEMORY)
@@ -64,11 +64,11 @@ Result page_read_item(Page *self, item_index_t item_id, Item *item) {
 // private
 Result page_write_item(Page *self, ItemPayload payload, ItemAddResult *item_add_result) {
     // we place data in the reverse order staring from page end
-    int32_t data_offset = self->page_header.free_space_end_offset - payload.size;
+    uint32_t data_offset = self->page_header.free_space_end_offset - payload.size;
     item_index_t item_id = self->page_header.next_item_id;
     ItemMetadata metadata = {
             .item_id = item_id,
-            .data_offset = (int32_t) data_offset,
+            .data_offset = data_offset,
             .size = payload.size,
             .continues_on_page = NULL_PAGE_INDEX
     };
@@ -79,7 +79,7 @@ Result page_write_item(Page *self, ItemPayload payload, ItemAddResult *item_add_
             .write_status = (ItemWriteStatus) {.complete = true, .bytes_left = 0 }
     };
     self->page_header.free_space_start_offset =
-            item_add_result->metadata_offset_in_page + (int32_t) sizeof(ItemMetadata);
+            item_add_result->metadata_offset_in_page + (uint32_t) sizeof(ItemMetadata);
     self->page_header.free_space_end_offset = data_offset;
     self->page_header.next_item_id.id++;
     return OK;
@@ -143,10 +143,10 @@ size_t page_size(Page *self) {
     return self->page_header.page_size;
 }
 
-int32_t page_get_free_space_left(Page *self) {
+uint32_t page_get_free_space_left(Page *self) {
     return self->page_header.free_space_end_offset - self->page_header.free_space_start_offset;
 }
 
-int32_t page_get_payload_available_space(Page *self) {
-    return page_get_free_space_left(self) - (int32_t) sizeof(ItemMetadata);
+uint32_t page_get_payload_available_space(Page *self) {
+    return page_get_free_space_left(self) - (uint32_t) sizeof(ItemMetadata);
 }

@@ -127,7 +127,7 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_
     size_t offset = page_manager_get_page_offset(self, id);
     // load from disk
     // allocate page here
-    int32_t page_size = page_manager_get_page_size(self);
+    uint32_t page_size = page_manager_get_page_size(self);
     Page *page = page_new(id, page_size);
     // read header
     res = file_manager_read(self->file_manager, offset, sizeof(PageHeader), page);
@@ -138,8 +138,11 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_
     RETURN_IF_FAIL(res, "Failed to read page payload from file")
 
     // TODO: don't forget about this page in memory
+    // TODO: возможная проблема. Каким-то образом, в связном списке одна страница может оказаться дважды.
+    // Если мы будем вычитывать страницу с диска несколько раз.
     self->pages->page_metadata.next_page = page;
     self->pages_in_memory++;
+    // TODO: удалять страницу из памяти, после использования.
 
     return OK;
 }

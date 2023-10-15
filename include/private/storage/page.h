@@ -33,13 +33,14 @@ static inline page_index_t next_page(page_index_t self) {
 
 struct PageHeader {
     page_index_t page_id;
-    int32_t page_size;
+    uint32_t page_size;
     // offset of this page in file
-    int32_t file_offset;
+    uint32_t file_offset;
     item_index_t next_item_id;
     // these two fields describe a range of free space [start; end]
-    int32_t free_space_start_offset;
-    int32_t free_space_end_offset;
+    // TODO: check that number doesn't overflow on subtraction
+    uint32_t free_space_start_offset;
+    uint32_t free_space_end_offset;
 };
 
 typedef struct PageInMemoryData PageInMemoryData;
@@ -63,13 +64,13 @@ struct Page {
 
 typedef struct {
     bool complete;
-    int32_t bytes_left;
+    uint32_t bytes_left;
 } ItemWriteStatus;
 
 typedef struct ItemMetadata {
     item_index_t item_id;
-    int32_t data_offset;
-    int32_t size;
+    uint32_t data_offset;
+    uint32_t size;
     page_index_t continues_on_page;
 } ItemMetadata;
 
@@ -81,17 +82,17 @@ struct Item {
 };
 
 typedef struct {
-    int32_t metadata_offset_in_page;
+    uint32_t metadata_offset_in_page;
     ItemMetadata metadata;
     ItemWriteStatus write_status;
 } ItemAddResult;
 
-Page * page_new(page_index_t page_id, int32_t page_size);
+Page * page_new(page_index_t page_id, uint32_t page_size);
 
 void page_destroy(Page *self);
 
 // payload size
-int32_t page_get_payload_size(int32_t page_size);
+uint32_t page_get_payload_size(uint32_t page_size);
 
 Result page_add_item(Page *self, ItemPayload payload, ItemAddResult *item_add_result);
 
@@ -101,6 +102,6 @@ Result page_add_split_item_end(Page *self, ItemPayload payload, ItemAddResult *i
 
 Result page_delete_item(Page *self, Item *item);
 
-int32_t page_get_free_space_left(Page *self);
+uint32_t page_get_free_space_left(Page *self);
 
-int32_t page_get_payload_available_space(Page *self);
+uint32_t page_get_payload_available_space(Page *self);

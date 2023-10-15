@@ -9,9 +9,12 @@ PageIterator *page_iterator_new(PageManager *page_manager) {
 
     PageIterator *result = malloc(sizeof(PageIterator));
     ASSERT_NOT_NULL(result, FAILED_TO_ALLOCATE_MEMORY)
+    Page *first_page = NULL;
+    page_manager_read_page(page_manager, page_id(0), &first_page);
+
     *result = (PageIterator) {.page_manager = page_manager, .next_page_id = 0,
             //TODO: check
-            .current_page = page_manager->pages};
+            .current_page = first_page};
     return result;
 }
 
