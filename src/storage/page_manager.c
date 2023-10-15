@@ -17,14 +17,14 @@ size_t page_manager_get_page_offset(PageManager *self, page_index_t page_id) {
 page_index_t page_manager_get_last_page_id(PageManager *self) {
     ASSERT_ARG_NOT_NULL(self);
 
-    int32_t pages_count = page_manager_get_pages_count(self);
+    uint32_t pages_count = page_manager_get_pages_count(self);
     return page_id(pages_count - 1);
 }
 
 // Public
 PageManager *page_manager_new() {
     PageManager *pm = malloc(sizeof(PageManager));
-    ASSERT_NOT_NULL(pm, FAILED_TO_ALLOCATE_MEMORY);
+    ASSERT_NOT_NULL(pm, FAILED_TO_ALLOCATE_MEMORY)
     pm->file_manager = file_manager_new();
     pm->pages = NULL;
     pm->pages_in_memory = 0;
@@ -42,7 +42,7 @@ Result page_manager_init(PageManager *self, const char *filename, uint32_t page_
     };
 
     Result res = file_manager_init(self->file_manager, filename, header_for_new_file);
-    RETURN_IF_FAIL(res, "Failed to read file header");
+    RETURN_IF_FAIL(res, "Failed to read file header")
 
     // this works both with empty file and file which contains data
     page_index_t free_page_id = page_id(self->file_manager->header.dynamic.current_free_page);
@@ -78,13 +78,13 @@ Result page_manager_page_new(PageManager *self, Page **page) {
     *page = page_new(next_id, page_manager_get_page_size(self));
     int32_t old_pages_count = page_manager_get_pages_count(self);
     Result res = page_manager_set_pages_count(self, old_pages_count++);
-    RETURN_IF_FAIL(res, "Failed increment pages count");
+    RETURN_IF_FAIL(res, "Failed increment pages count")
     // write to file
     int32_t page_size = page_manager_get_page_size(self);
     Result page_write_res = file_manager_write(self->file_manager, (*page)->page_header.file_offset, page_size,
                                                page);
     // TODO: free page if fail
-    RETURN_IF_FAIL(page_write_res, "Failed to write new page to file");
+    RETURN_IF_FAIL(page_write_res, "Failed to write new page to file")
 
     self->pages->page_metadata.next_page = *page;
     self->pages_in_memory++;
@@ -135,7 +135,7 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_
     // read payload
     res = file_manager_read(self->file_manager, offset + sizeof(PageHeader), page_get_payload_size(page_size),
                             page->page_payload.bytes);
-    RETURN_IF_FAIL(res, "Failed to read page payload from file");
+    RETURN_IF_FAIL(res, "Failed to read page payload from file")
 
     // TODO: don't forget about this page in memory
     self->pages->page_metadata.next_page = page;
@@ -182,7 +182,7 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
 
     // persist in memory
     Result res = page_add_item(page, payload, item_add_result);
-    RETURN_IF_FAIL(res, "Failed to add item to page in memory");
+    RETURN_IF_FAIL(res, "Failed to add item to page in memory")
 
     // if we don't have enough space in page then we need to allocate new page and place left data there
     if (!item_add_result->write_status.complete) {
@@ -213,17 +213,17 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
     res = file_manager_write(self->file_manager, metadata_offset_in_file, ITEM_METADATA_SIZE,
                              (void *) &metadata);
     //TODO: think about operation rollback. we might need to remove added item from page if fail
-    RETURN_IF_FAIL(res, "Failed to write item metadata to file");
+    RETURN_IF_FAIL(res, "Failed to write item metadata to file")
 
     // persist data on disk
     size_t data_offset_in_file = convert_to_file_offset(self, page->page_header.page_id, data_offset);
     res = file_manager_write(self->file_manager, data_offset_in_file, payload.size, payload.data);
-    RETURN_IF_FAIL(res, "Failed to write item data to file");
+    RETURN_IF_FAIL(res, "Failed to write item data to file")
 
     // persist header on disk
     size_t header_offset_in_file = page->page_header.file_offset;
     res = file_manager_write(self->file_manager, header_offset_in_file, sizeof(PageHeader), &page->page_header);
-    RETURN_IF_FAIL(res, "Failed to write page header to file");
+    RETURN_IF_FAIL(res, "Failed to write page header to file")
 
     return OK;
 }
@@ -236,12 +236,12 @@ Result page_manager_delete_item(PageManager *self, Page *page, Item *item) {
 
     // persist in memory
     Result res = page_delete_item(page, item);
-    RETURN_IF_FAIL(res, "Failed to delete item from page in memory");
+    RETURN_IF_FAIL(res, "Failed to delete item from page in memory")
 
     // we don't need to write deleted data. We only flush header
     size_t header_offset_in_file = page->page_header.file_offset;
     res = file_manager_write(self->file_manager, header_offset_in_file, sizeof(PageHeader), &page->page_header);
-    RETURN_IF_FAIL(res, "Failed to write page header to file");
+    RETURN_IF_FAIL(res, "Failed to write page header to file")
 
     // TODO: implement defragmentation
     return OK;
@@ -262,13 +262,13 @@ Result page_manager_set_current_free_page(PageManager *self, Page *page) {
     return file_manager_write_header(self->file_manager);
 }
 
-int32_t page_manager_get_page_size(PageManager *self) {
+uint32_t page_manager_get_page_size(PageManager *self) {
     ASSERT_ARG_NOT_NULL(self);
 
     return self->file_manager->header.constants.page_size;
 }
 
-int32_t page_manager_get_pages_count(PageManager *self) {
+uint32_t page_manager_get_pages_count(PageManager *self) {
     ASSERT_ARG_NOT_NULL(self);
 
     return self->file_manager->header.dynamic.page_count;

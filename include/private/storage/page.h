@@ -5,10 +5,10 @@
 #include "public/storage/page.h"
 
 typedef struct item_index_t {
-    u_int32_t id;
+    uint32_t id;
 } item_index_t;
 
-static inline item_index_t item_id(int32_t value) {
+static inline item_index_t item_id(uint32_t value) {
     return (item_index_t) {.id = value};
 }
 
@@ -48,7 +48,7 @@ struct PageInMemoryData {
 };
 
 struct PagePayload {
-    u_int8_t *bytes;
+    uint8_t *bytes;
 };
 
 static inline bool is_null_page(PagePayload page) {

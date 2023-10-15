@@ -1,6 +1,7 @@
 #pragma once
 
 #include "public/util/common.h"
+#include <stdint.h>
 
 typedef struct {
     const char *value;
@@ -25,8 +26,8 @@ typedef struct {
 } NodeValue;
 
 typedef struct {
-    u_int32_t page_id;
-    u_int32_t item_id;
+    uint32_t page_id;
+    uint32_t item_id;
 } node_id_t;
 
 static const node_id_t ROOT_NODE_ID = {0, 0};

@@ -5,7 +5,7 @@
 
 Document *document_new() {
     Document *document = malloc(sizeof(Document));
-    ASSERT_NOT_NULL(document, FAILED_TO_ALLOCATE_MEMORY);
+    ASSERT_NOT_NULL(document, FAILED_TO_ALLOCATE_MEMORY)
     document->page_manager = page_manager_new();
     document->root_node = NULL;
     return document;

@@ -13,10 +13,10 @@ int32_t page_get_payload_size(int32_t page_size) {
  */
 Page *page_new(page_index_t page_id, int32_t page_size) {
     // TODO: rethink payload allocation
-    u_int8_t *payload = malloc(page_get_payload_size(page_size));
-    ASSERT_NOT_NULL(payload, FAILED_TO_ALLOCATE_MEMORY);
+    uint8_t *payload = malloc(page_get_payload_size(page_size));
+    ASSERT_NOT_NULL(payload, FAILED_TO_ALLOCATE_MEMORY)
     Page *result = malloc(sizeof(Page));
-    ASSERT_NOT_NULL(result, FAILED_TO_ALLOCATE_MEMORY);
+    ASSERT_NOT_NULL(result, FAILED_TO_ALLOCATE_MEMORY)
 
     PageHeader header = {
             .page_id = page_id,

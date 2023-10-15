@@ -2,23 +2,20 @@
 #include "gmock/gmock.h"
 
 extern "C" {
-    #include "public/storage/file.h"
+#include "public/storage/file.h"
 }
 
 void assert_ok(Result res) {
-    Result expected = (Result){.status = RES_OK, .message = nullptr};
+    Result expected = (Result) {.status = RES_OK, .message = nullptr};
     ASSERT_STREQ(res.message, expected.message);
     ASSERT_EQ(res.status, expected.status);
 }
 
 TEST(test_file, test_file_new) {
-    FileState *file = nullptr;
-    Result res = file_new();
-    Result expected = (Result){.status = RES_OK, .message = nullptr};
-    assert_ok(res);
+    FileState *file = file_new();
     ASSERT_EQ(file_is_open(file), false);
     file_destroy(file);
-};
+}
 
 TEST(test_file, test_file_open) {
     FileState *file = nullptr;
@@ -30,10 +27,9 @@ TEST(test_file, test_file_open) {
     assert_ok(res);
     ASSERT_EQ(file_is_open(file), false);
     file_destroy(file);
-};
+}
 
-TEST(test_file, test_file_read) {
-    FileState *file = nullptr;
+TEST(test_file, test_file_read) { FileState *file = nullptr;
     file_new();
     // manually write to file
     FILE *fd = fopen("/tmp/test_file.txt", "w");

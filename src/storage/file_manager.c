@@ -2,7 +2,7 @@
 
 FileManager * file_manager_new() {
     FileManager *fm = malloc(sizeof(FileManager));
-    ASSERT_NOT_NULL(fm, FAILED_TO_ALLOCATE_MEMORY);
+    ASSERT_NOT_NULL(fm, FAILED_TO_ALLOCATE_MEMORY)
     FileState *fs = file_new();
     // TODO: free self memory if fail.
     // fill dest with all fields in structure
@@ -23,7 +23,7 @@ Result file_manager_init(FileManager *self, const char *filename, FileHeaderCons
     ASSERT_ARG_NOT_NULL(filename);
 
     Result res = file_manager_open(self, filename);
-    RETURN_IF_FAIL(res, "Failed to open file");
+    RETURN_IF_FAIL(res, "Failed to open file")
 
     if (self->file->is_new || self->file->size == 0) {
         self->header.constants = header_for_new_file;
@@ -31,10 +31,10 @@ Result file_manager_init(FileManager *self, const char *filename, FileHeaderCons
         self->header.dynamic.current_free_page = 0;
         self->header.dynamic.page_count = 0;
         res = file_manager_write_header(self);
-        RETURN_IF_FAIL(res, "Failed to write file header");
+        RETURN_IF_FAIL(res, "Failed to write file header")
     } else {
         res = file_manager_read_header(self);
-        RETURN_IF_FAIL(res, "Failed to read file header");
+        RETURN_IF_FAIL(res, "Failed to read file header")
     }
 
     return OK;

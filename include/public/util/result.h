@@ -19,7 +19,7 @@ typedef struct {
 #define OK (Result) {.status = RES_OK, .message = NULL}
 
 // define ERROR macro
-#define ERROR(msg) (Result) {.status = RES_ERROR, .message = msg}
+#define ERROR(msg) (Result) {.status = RES_ERROR, .message = (msg)}
 
 static bool result_is_fail__(Result result) {
     return result.status == RES_ERROR;
@@ -27,14 +27,14 @@ static bool result_is_fail__(Result result) {
 
 // TODO: free self memory if fail.
 // Implement auto clean macro on fail
-#define RETURN_IF_FAIL(result, return_error_msg)\
+#define RETURN_IF_FAIL(result, return_error_msg) \
     if (result_is_fail__(result)) {      \
-        log_error(__FILE__, __LINE__, result.message);       \
+        log_error(__FILE__, __LINE__, (result).message);       \
         return ERROR(return_error_msg);          \
     }
 
-#define ABORT_IF_FAIL(result, return_error_msg)\
+#define ABORT_IF_FAIL(result, return_error_msg)  \
     if (result_is_fail__(result)) {      \
-        log_error(__FILE__, __LINE__, result.message);       \
+        log_error(__FILE__, __LINE__, (result).message);       \
         exit(1);          \
     }

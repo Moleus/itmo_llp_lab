@@ -8,7 +8,7 @@ PageIterator *page_iterator_new(PageManager *page_manager) {
     ASSERT_ARG_NOT_NULL(page_manager);
 
     PageIterator *result = malloc(sizeof(PageIterator));
-    ASSERT_NOT_NULL(result, FAILED_TO_ALLOCATE_MEMORY);
+    ASSERT_NOT_NULL(result, FAILED_TO_ALLOCATE_MEMORY)
     *result = (PageIterator) {.page_manager = page_manager, .next_page_id = 0,
             //TODO: check
             .current_page = page_manager->pages};
@@ -36,7 +36,7 @@ Result page_iterator_next(PageIterator *self, Page **result) {
 
     // TODO: check that it works
     Result get_page_res = page_manager_read_page(self->page_manager, self->next_page_id, result);
-    RETURN_IF_FAIL(get_page_res, "Failed to get page by id");
+    RETURN_IF_FAIL(get_page_res, "Failed to get page by id")
     self->next_page_id.id++;
     self->current_page = *result;
     return OK;
@@ -47,7 +47,7 @@ ItemIterator *item_iterator_new(PageManager *page_manager) {
     ASSERT_ARG_NOT_NULL(page_manager);
 
     ItemIterator *item_it = malloc(sizeof(ItemIterator));
-    ASSERT_NOT_NULL(item_it, FAILED_TO_ALLOCATE_MEMORY);
+    ASSERT_NOT_NULL(item_it, FAILED_TO_ALLOCATE_MEMORY)
 
     PageIterator *page_iterator = page_manager_get_pages(page_manager);
     *item_it = (ItemIterator) {.page_iterator = page_iterator, .current_item = NULL, .current_item_index = -1};
@@ -89,7 +89,7 @@ Result item_iterator_next(ItemIterator *self, Item **result) {
         // Он уже должен определить - загружена ли она в память, или ее нужно достать с диска
         Page *page = NULL;
         Result res = page_manager_read_page(pm, next_page_index, &page);
-        RETURN_IF_FAIL(res, "Failed to read item");
+        RETURN_IF_FAIL(res, "Failed to read item")
         //TODO: check increment
         self->current_item_index.id++;
         self->current_item = *result;
@@ -98,7 +98,7 @@ Result item_iterator_next(ItemIterator *self, Item **result) {
     Page *page = NULL;
     // page is auto-incremented
     Result res = page_iterator_next(self->page_iterator, &page);
-    RETURN_IF_FAIL(res, "Failed to get next_page page");
+    RETURN_IF_FAIL(res, "Failed to get next_page page")
     // TODO: think about recursion. Theoretically it should be executed only once, so maybe no recursion needed
     return item_iterator_next(self, result);
 }

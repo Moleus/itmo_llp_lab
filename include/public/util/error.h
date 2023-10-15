@@ -16,8 +16,8 @@ typedef enum {
 
 #define ASSERT_ARG_NOT_NULL(arg) check_arg_null_pointer(arg, #arg, __FILE__, __LINE__)
 #define ASSERT_ARG_IS_NULL(arg) check_arg_is_null_pointer(arg, #arg, __FILE__, __LINE__)
-#define ASSERT_NOT_NULL(arg, error_code) if (arg == NULL) { exit_with_msg(error_code, __FILE__, __LINE__); }
-#define RETURN_IF_NULL(arg, err_msg) if (arg == NULL) { return ERROR(err_msg); }
+#define ASSERT_NOT_NULL(arg, error_code) if ((arg) == NULL) { exit_with_msg(error_code, __FILE__, __LINE__); }
+#define RETURN_IF_NULL(arg, err_msg) if ((arg) == NULL) { return ERROR(err_msg); }
 
 #define ABORT_EXIT(err_code, err_msg) exit_with_msg_arg(err_code, err_msg, __FILE__, __LINE__)
 
