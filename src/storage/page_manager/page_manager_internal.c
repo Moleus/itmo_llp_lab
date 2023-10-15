@@ -12,6 +12,8 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_IS_NULL(*result_page);
 
+    // NOTE: здесь мы выдаем ошибку, если страницы не существует.
+    // Если мы хотим получить страницу и не знаем, есть она или нет -
     uint32_t pages_count = page_manager_get_pages_count(self);
     if (id.id >= pages_count) {
         ABORT_EXIT(INTERNAL_LIB_ERROR, "Page doesn't exist");
@@ -20,6 +22,7 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_
     // check if page exists in ram
     Result res = page_manager_get_page_from_ram(self, id, result_page);
     if (res.status == RES_OK) {
+        LOG_INFO("Page %d found in ram", id.id);
         // page found in ram
         return OK;
     }

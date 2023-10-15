@@ -1,6 +1,7 @@
 #pragma once
 
 #include "public/util/common.h"
+#include "stdint.h"
 
 typedef struct ItemPayload {
     void *data;

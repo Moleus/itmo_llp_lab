@@ -37,6 +37,8 @@ Result page_manager_init(PageManager *self, const char *filename, uint32_t page_
     }
     self->current_free_page = current_free_page;
 
+    LOG_DEBUG("Page manager initialized. Pages count: %d. Free page: %d, ", page_manager_get_pages_count(self), free_page_id.id);
+
     return OK;
 }
 
@@ -54,11 +56,13 @@ void page_manager_destroy(PageManager *self) {
     // free(self->current_free_page);
 }
 
+// call only when reading new page from disk or creating
 void page_manager_after_page_read(PageManager *self, Page* page) {
     // it's first page
     if (self->pages == NULL) {
         self->pages = page;
     } else {
+        LOG_DEBUG("Adding page %d to pages list. Previous was %d", page->page_header.page_id.id, self->pages->page_header.page_id.id);
         self->pages->page_metadata.next_page = page;
     }
     self->pages_in_memory++;
@@ -84,14 +88,17 @@ Result page_manager_page_new(PageManager *self, Page **page) {
     page_index_t next_id = next_page(page_manager_get_last_page_id(self));
     *page = page_new(next_id, page_manager_get_page_size(self));
     uint32_t old_pages_count = page_manager_get_pages_count(self);
-    Result res = page_manager_set_pages_count(self, old_pages_count++);
+    Result res = page_manager_set_pages_count(self, ++old_pages_count);
+    LOG_DEBUG("New page %d, total pages count: %d", next_id.id, page_manager_get_pages_count(self));
     RETURN_IF_FAIL(res, "Failed increment pages count")
     // write to file
     uint32_t page_size = page_manager_get_page_size(self);
-    Result page_write_res = file_manager_write(self->file_manager, (*page)->page_header.file_offset, page_size,
+    uint32_t page_offset_in_file = page_manager_get_page_offset(self, (*page)->page_header.page_id);
+    Result page_write_res = file_manager_write(self->file_manager, page_offset_in_file, page_size,
                                                page);
     // TODO: free page if fail
     RETURN_IF_FAIL(page_write_res, "Failed to write new page to file")
+    LOG_DEBUG("Written page %d bytes %d to offset %08X", next_id.id, page_size, page_offset_in_file);
 
     page_manager_after_page_read(self, *page);
 
@@ -120,11 +127,15 @@ Result page_manager_flush_page(PageManager *self, Page *page) {
 // Private
 Result page_manager_get_page_from_ram(PageManager *self, page_index_t page_id, Page **result) {
     ASSERT_ARG_NOT_NULL(self);
-    ASSERT_ARG_IS_NULL(result);
+    ASSERT_ARG_IS_NULL(*result);
 
     // for each page in pages
     Page *current_page = self->pages;
     for (size_t i = 0; i < self->pages_in_memory; i++) {
+        if (current_page == NULL) {
+            LOG_ERR("Page from ram %d is null. Pages in memory: %d", i, self->pages_in_memory);
+            ABORT_EXIT(INTERNAL_LIB_ERROR, "Page in memory is null");
+        }
         if (current_page->page_header.page_id.id == page_id.id) {
             *result = current_page;
             return OK;

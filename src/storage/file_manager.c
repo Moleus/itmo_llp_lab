@@ -1,6 +1,6 @@
 #include "private/storage/file_manager.h"
 
-FileManager * file_manager_new() {
+FileManager *file_manager_new() {
     FileManager *fm = malloc(sizeof(FileManager));
     ASSERT_NOT_NULL(fm, FAILED_TO_ALLOCATE_MEMORY)
     FileState *fs = file_new();
@@ -14,6 +14,8 @@ void file_manager_destroy(FileManager *self) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_NOT_NULL(self->file);
 
+    Result res = file_close(self->file);
+    ABORT_IF_FAIL(res, "Failed to close file");
     file_destroy(self->file);
     free(self);
 }
@@ -25,9 +27,10 @@ Result file_manager_init(FileManager *self, const char *filename, FileHeaderCons
     Result res = file_manager_open(self, filename);
     RETURN_IF_FAIL(res, "Failed to open file")
 
+    LOG_INFO("Init file. new: %b. size: %d. Writing header", self->file->is_new, self->file->size);
     if (self->file->is_new || self->file->size == 0) {
         self->header.constants = header_for_new_file;
-        self->header.dynamic.file_size = 0;
+        self->header.dynamic.file_size = sizeof(FileHeader);
         self->header.dynamic.current_free_page = 0;
         self->header.dynamic.page_count = 0;
         res = file_manager_write_header(self);
@@ -36,6 +39,15 @@ Result file_manager_init(FileManager *self, const char *filename, FileHeaderCons
         res = file_manager_read_header(self);
         RETURN_IF_FAIL(res, "Failed to read file header")
     }
+    // check file signature
+    if (self->header.constants.signature != header_for_new_file.signature) {
+        LOG_WARN("File signature doesn't match. Expected: %x, actual: %x", header_for_new_file.signature,
+                 self->header.constants.signature);
+        return ERROR("File signature doesn't match");
+    }
+
+    LOG_INFO("File manager initialized. Signature: %x, File size: %d. Page size: %d ", self->header.constants.signature,
+             self->header.dynamic.file_size, self->header.constants.page_size);
 
     return OK;
 }
@@ -50,14 +62,14 @@ Result file_manager_open(FileManager *self, const char *filename) {
 Result file_manager_read_header(FileManager *self) {
     ASSERT_ARG_NOT_NULL(self);
 
-    FileHeader header = self->header;
-    return file_read(self->file, (void *) &header, 0, sizeof(FileHeader));
+    return file_read(self->file, (void *) &self->header, 0, sizeof(FileHeader));
 }
 
 Result file_manager_write_header(FileManager *self) {
     ASSERT_ARG_NOT_NULL(self);
 
-    return file_write(self->file, &self->header, 0, sizeof(FileHeader));
+    self->header.dynamic.file_size = sizeof(FileHeader) + self->header.dynamic.page_count * self->header.constants.page_size;
+    return file_write(self->file, &self->header.constants, 0, sizeof(FileHeader));
 }
 
 Result file_manager_read(FileManager *self, size_t offset, size_t size, void *buffer) {

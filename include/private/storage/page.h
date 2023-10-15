@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include "public/storage/page.h"
 
+#define HEADER_SIZE sizeof(PageHeader)
+
 typedef struct item_index_t {
     uint32_t id;
 } item_index_t;
@@ -35,8 +37,8 @@ struct PageHeader {
     page_index_t page_id;
     uint32_t page_size;
     // offset of this page in file
-    uint32_t file_offset;
     item_index_t next_item_id;
+    uint32_t items_count;
     // these two fields describe a range of free space [start; end]
     // TODO: check that number doesn't overflow on subtraction
     uint32_t free_space_start_offset;
@@ -71,6 +73,7 @@ typedef struct ItemMetadata {
     item_index_t item_id;
     uint32_t data_offset;
     uint32_t size;
+    bool is_deleted;
     page_index_t continues_on_page;
 } ItemMetadata;
 
@@ -101,6 +104,8 @@ Result page_add_split_item_start(Page *self, ItemPayload payload, ItemAddResult 
 Result page_add_split_item_end(Page *self, ItemPayload payload, ItemAddResult *item_add_result);
 
 Result page_delete_item(Page *self, Item *item);
+
+Result page_get_item(Page *self, item_index_t item_id, Item *item);
 
 uint32_t page_get_free_space_left(Page *self);
 

@@ -1,11 +1,18 @@
 #include "private/storage/file.h"
 #include <assert.h>
 
+#ifdef WINDOWS
+#include <io.h>
+#define F_OK 0
+#define access _access
+#else
+#include <unistd.h>
+#endif
+
 FileState * file_new() {
     FileState *fs = malloc(sizeof(FileState));
     ASSERT_NOT_NULL(fs, FAILED_TO_ALLOCATE_MEMORY);
     fs->is_open = false;
-    fs->is_new = false;
     return fs;
 }
 
@@ -21,16 +28,22 @@ Result file_open(FileState *fs, const char *filename) {
     ASSERT_ARG_NOT_NULL(filename);
     assert(fs->is_open == false);
 
+    bool file_exists = access(filename, F_OK) == 0;
     // try to read the file
-    FILE *file = fopen(filename, "r+b");
-    if (file == NULL) {
-        // if it doesn't exist - set flag and create new file
-        file = fopen(filename, "a+b");
-        fs->is_new = true;
-        RETURN_IF_NULL(file, "Can't open file");
+    if (!file_exists) {
+        LOG_DEBUG("File %s doesn't exist", filename);
+        FILE *file = fopen(filename, "w");
+        RETURN_IF_NULL(file, "Can't create file");
+        if (fclose(file) != 0) {
+            return ERROR("Failed to close file");
+        }
     }
+    FILE *file = fopen(filename, "r+b");
+    RETURN_IF_NULL(file, "Can't open file");
+
     fs->file = file;
     fs->is_open = true;
+    fs->is_new = !file_exists;
     file_get_file_size(fs, &fs->size);
     return OK;
 }

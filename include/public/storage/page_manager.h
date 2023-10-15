@@ -26,7 +26,7 @@ Result page_manager_init(PageManager *self, const char *filename, uint32_t page_
 typedef struct PageIterator PageIterator;
 
 // TODO: make private
-PageIterator *page_iterator_new(PageManager *page_manager);
+PageIterator *page_iterator_new(PageManager *self);
 
 void page_iterator_destroy(PageIterator *self);
 

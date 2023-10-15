@@ -29,12 +29,12 @@ static bool result_is_fail__(Result result) {
 // Implement auto clean macro on fail
 #define RETURN_IF_FAIL(result, return_error_msg) \
     if (result_is_fail__(result)) {      \
-        log_error(__FILE__, __LINE__, (result).message);       \
+        LOG_WARN("%s", (result).message);       \
         return ERROR(return_error_msg);          \
     }
 
 #define ABORT_IF_FAIL(result, return_error_msg)  \
-    if (result_is_fail__(result)) {      \
-        log_error(__FILE__, __LINE__, (result).message);       \
-        exit(1);          \
+    if (result_is_fail__(result)) {              \
+        LOG_ERR("%s", (result).message);         \
+        exit(1);                                 \
     }

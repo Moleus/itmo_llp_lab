@@ -1,19 +1,23 @@
+#include <assert.h>
 #include "private/storage/page_manager.h"
 
 //TODO: think if it's correct to include private header
 #include "private/storage/page.h"
 
 // Page Iterator
-PageIterator *page_iterator_new(PageManager *page_manager) {
-    ASSERT_ARG_NOT_NULL(page_manager);
+PageIterator *page_iterator_new(PageManager *self) {
+    ASSERT_ARG_NOT_NULL(self);
 
     PageIterator *result = malloc(sizeof(PageIterator));
     ASSERT_NOT_NULL(result, FAILED_TO_ALLOCATE_MEMORY)
-    Page *first_page = NULL;
-    page_manager_get_first_page_or_create(page_manager, &first_page);
-    *result = (PageIterator) {.page_manager = page_manager, .next_page_id = 0,
-            //TODO: check
-            .current_page = first_page};
+    // начинаем с первой страницы
+    Page *page = NULL;
+    if (page_manager_get_pages_count(self) > 0) {
+        page_manager_read_page(self, page_id(0), &page);
+    }
+    *result = (PageIterator) {.page_manager = self, .next_page_id = 0,
+            // TODO: check page for null while iterating
+            .current_page = page};
     return result;
 }
 
@@ -25,7 +29,7 @@ void page_iterator_destroy(PageIterator *self) {
 bool page_iterator_has_next(PageIterator *self) {
     ASSERT_ARG_NOT_NULL(self);
 
-    int32_t pages_count = page_manager_get_pages_count(self->page_manager);
+    uint32_t pages_count = page_manager_get_pages_count(self->page_manager);
     return self->next_page_id.id < pages_count;
 }
 
@@ -64,45 +68,57 @@ void item_iterator_destroy(ItemIterator *self) {
 
 bool item_iterator_has_next(ItemIterator *self) {
     ASSERT_ARG_NOT_NULL(self);
-    if (is_null_page(self->page_iterator->current_page->page_payload)) {
-        // If next page exists then there must be at least one item on the next page
-        return page_iterator_has_next(self->page_iterator);
-    }
+    Page *cur_page = self->page_iterator->current_page;
 
-    if (next_item(self->current_item_index).id < self->page_iterator->current_page->page_header.next_item_id.id) {
+    // Проверка когда нет первой страницы
+    if (cur_page == NULL) {
+        // there are no pages in file
+        LOG_DEBUG("Current page is null. Total pages: %d", page_manager_get_pages_count(self->page_iterator->page_manager));
+        return false;
+    }
+    // Если текущая страница не пустая
+    if (next_item(self->current_item_index).id < cur_page->page_header.next_item_id.id) {
+        // TODO: работает ли это, когда мы удаляем айтемы со страницы?
+        // Скорее всего да, т.к за next_item_id не должно быть удаленных элементов
         return true;
     }
-    return page_iterator_has_next(self->page_iterator);
+    // Если на этой странице больше нет элементов - надо проверить на следующей
+    // нужно загрузить следующую страницу и проверить, что кол-во элементов в ней больше 0
+    // надо проверять следующие страницы, пока не найдем страницу с элементами или кол-во страниц не закончится
+    LOG_DEBUG("ItemIterator - checking next page %d", self->page_iterator->next_page_id.id);
+    while (page_iterator_has_next(self->page_iterator)) {
+        cur_page = NULL;
+        Result res = page_iterator_next(self->page_iterator, &cur_page);
+        ABORT_IF_FAIL(res, "Failed to get next page");
+        if (cur_page->page_header.items_count > 0) {
+            LOG_DEBUG("ItemIterator - found item on page %d", cur_page->page_header.page_id.id);
+            return true;
+        }
+    }
+    return false;
 }
 
 Result item_iterator_next(ItemIterator *self, Item **result) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_IS_NULL(result);
 
+    item_index_t old_item_index = self->current_item_index;
+    Page *cur_page = self->page_iterator->current_page;
+    uint32_t new_item_index = self->current_item_index.id++;
+
     if (!item_iterator_has_next(self)) {
         ABORT_EXIT(INTERNAL_LIB_ERROR, "No more items in iterator");
     }
 
-    if (self->current_item_index.id <= self->page_iterator->current_page->page_header.next_item_id.id) {
-        // item is on next page
-        page_index_t next_page_index = next_page(self->page_iterator->current_page->page_header.page_id);
-        PageManager *pm = self->page_iterator->page_manager;
-        // Здесь мы обращаемся к page_manager и просим у него следующую страницу.
-        // Он уже должен определить - загружена ли она в память, или ее нужно достать с диска
-        Page *page = NULL;
-        Result res = page_manager_read_page(pm, next_page_index, &page);
-        RETURN_IF_FAIL(res, "Failed to read item")
-        //TODO: check increment
-        self->current_item_index.id++;
-        self->current_item = *result;
-        return OK;
+    if (new_item_index > cur_page->page_header.next_item_id.id) {
+        LOG_ERR("Page: %d. Next item %d is on next page", cur_page, new_item_index);
+        ABORT_EXIT(INTERNAL_LIB_ERROR, "It should not be possible because has_next sets current_page or returns false");
     }
-    Page *page = NULL;
-    // page is auto-incremented
-    Result res = page_iterator_next(self->page_iterator, &page);
-    RETURN_IF_FAIL(res, "Failed to get next_page page")
-    // TODO: think about recursion. Theoretically it should be executed only once, so maybe no recursion needed
-    return item_iterator_next(self, result);
+
+    Result res = page_get_item(cur_page, next_item(old_item_index), *result);
+    RETURN_IF_FAIL(res, "Failed to get item from page")
+    self->current_item = *result;
+    return OK;
 }
 
 // To top-level function which should be used to get items and pages

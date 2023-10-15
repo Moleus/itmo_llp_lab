@@ -9,7 +9,7 @@
 size_t page_manager_get_page_offset(PageManager *self, page_index_t page_id) {
     ASSERT_ARG_NOT_NULL(self);
 
-    return (size_t) page_id.id * page_manager_get_page_size(self);
+    return sizeof(FileHeader) + (size_t) page_id.id * page_manager_get_page_size(self);
 }
 
 page_index_t page_manager_get_last_page_id(PageManager *self) {

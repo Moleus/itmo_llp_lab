@@ -7,14 +7,13 @@ extern "C" {
 
 TEST(test_page, page_add_item) {
     page_index_t id = page_id(0);
-    int32_t size = 1024;
+    uint32_t size = 1024;
     Page *page = page_new(id, size);;
     EXPECT_EQ(page->page_header.page_id.id, id.id);
-    EXPECT_EQ(page->page_header.file_offset, 0);
 
     ItemPayload payload;
     const char *data = "test data";
-    auto payload_size = (int32_t) strlen(data);
+    auto payload_size = (uint32_t) strlen(data);
     payload.size = payload_size;
     payload.data = (void*) data;
     ItemAddResult result;
