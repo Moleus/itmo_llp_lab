@@ -15,6 +15,12 @@ Result document_init_all(Document *self, const char *file_path, size_t page_size
     return page_manager_init(self->page_manager, file_path, page_size, FILE_SIGNATURE);
 }
 
+void document_destroy(Document *self) {
+    ASSERT_ARG_NOT_NULL(self);
+    page_manager_destroy(self->page_manager);
+    free(self);
+}
+
 // --- ADD NODE ---
 // persists new node and assigns id to it
 Result document_persist_new_node(Document *self, Node *node) {
@@ -58,7 +64,6 @@ Result document_add_root_node(Document *self, Node *root) {
         }
     }
     item_iterator_destroy(items_it);
-    items_it->destroyable->destroy(items_it);
 
     return document_persist_new_node(self, root);
 }
@@ -179,11 +184,14 @@ Result document_add_bulk_nodes(Document *self, CreateMultipleNodesRequest *reque
                 node->value = request->values[i];
                 node->parent_id = request->parent;
                 Result res = document_persist_new_node(self, node);
+                item_iterator_destroy(items_it);
                 RETURN_IF_FAIL(res, "failed to bulk add node");
             }
+            item_iterator_destroy(items_it);
             return OK;
         }
     }
+    item_iterator_destroy(items_it);
     // didn't find parent node
     return ERROR("Parent node doesn't exist in document tree");
 }
@@ -206,12 +214,14 @@ Result document_get_all_children(Document *self, GetAllChildrenRequest *request,
             count++;
         }
     }
+    item_iterator_destroy(items_it);
     result->count = count;
     if (count == 0) {
         return OK;
     }
     Node nodes[count];
     size_t i = 0;
+    items_it = page_manager_get_items(self->page_manager);
     while (item_iterator_has_next(items_it)) {
         Item *item;
         Result get_item_res = item_iterator_next(items_it, &item);
@@ -221,6 +231,7 @@ Result document_get_all_children(Document *self, GetAllChildrenRequest *request,
             nodes[i++] = *tmp_node;
         }
     }
+    item_iterator_destroy(items_it);
     // didn't find parent node
     return OK;
 }

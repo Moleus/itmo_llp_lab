@@ -50,8 +50,7 @@ ItemIterator *item_iterator_new(PageManager *page_manager) {
     ASSERT_NOT_NULL(item_it, FAILED_TO_ALLOCATE_MEMORY);
 
     PageIterator *page_iterator = page_manager_get_pages(page_manager);
-    *item_it = (ItemIterator) {.page_iterator = page_iterator, .current_item = NULL, .current_item_index = -1,
-            .destroy = (DestroyFunc *) item_iterator_destroy};
+    *item_it = (ItemIterator) {.page_iterator = page_iterator, .current_item = NULL, .current_item_index = -1};
     return item_it;
 }
 

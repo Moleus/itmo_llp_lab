@@ -56,8 +56,15 @@ Result page_manager_init(PageManager *self, const char *filename, uint32_t page_
 void page_manager_destroy(PageManager *self) {
     ASSERT_ARG_NOT_NULL(self);
 
+    file_manager_destroy(self->file_manager);
     // TODO: remove all pages from memory
-    free(self->pages);
+    for (size_t i = 0; i < self->pages_in_memory; i++) {
+        Page *next_page = self->pages->page_metadata.next_page;
+        page_destroy(self->pages);
+        self->pages = next_page;
+    }
+    // TODO: check that we don't do double-free
+    // free(self->current_free_page);
 }
 
 /*
@@ -78,6 +85,9 @@ Result page_manager_page_new(PageManager *self, Page **page) {
                                                page);
     // TODO: free page if fail
     RETURN_IF_FAIL(page_write_res, "Failed to write new page to file");
+
+    self->pages->page_metadata.next_page = *page;
+    self->pages_in_memory++;
 
     return OK;
 }
@@ -110,26 +120,26 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_
         return OK;
     }
 
+    // TODO: can we use page_manager_page_new instead?
+    // no. Because here we get page by id. And new only allocates new page
+
     // pass offset to file_manger and get page
     size_t offset = page_manager_get_page_offset(self, id);
-
     // load from disk
     // allocate page here
     int32_t page_size = page_manager_get_page_size(self);
     Page *page = page_new(id, page_size);
-
     // read header
     res = file_manager_read(self->file_manager, offset, sizeof(PageHeader), page);
     RETURN_IF_FAIL(res, "Failed to read page header from file")
-
     // read payload
     res = file_manager_read(self->file_manager, offset + sizeof(PageHeader), page_get_payload_size(page_size),
                             page->page_payload.bytes);
     RETURN_IF_FAIL(res, "Failed to read page payload from file");
 
-    self->pages_in_memory++;
     // TODO: don't forget about this page in memory
     self->pages->page_metadata.next_page = page;
+    self->pages_in_memory++;
 
     return OK;
 }
