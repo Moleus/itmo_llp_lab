@@ -24,7 +24,6 @@ Page *page_new(page_index_t page_id, int32_t page_size) {
             .next_item_id = 0,
             .free_space_start_offset = HEADER_SIZE,
             .free_space_end_offset = page_size,
-            .is_dirty = false,
             .page_size = page_size,
     };
 
@@ -33,13 +32,12 @@ Page *page_new(page_index_t page_id, int32_t page_size) {
     return result;
 }
 
-Result page_destroy(Page *self) {
+void page_destroy(Page *self) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_NOT_NULL(self->page_payload.bytes);
 
     free(self->page_payload.bytes);
     free(self);
-    return OK;
 }
 
 static ItemMetadata get_metadata(const Page *self, item_index_t item_id) {

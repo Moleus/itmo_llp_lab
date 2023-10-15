@@ -10,14 +10,12 @@ FileManager * file_manager_new() {
     return fm;
 }
 
-Result file_manager_destroy(FileManager *self) {
+void file_manager_destroy(FileManager *self) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_NOT_NULL(self->file);
 
-    Result res = file_destroy(self->file);
-    RETURN_IF_FAIL(res, "Failed to destroy file");
+    file_destroy(self->file);
     free(self);
-    return OK;
 }
 
 Result file_manager_init(FileManager *self, const char *filename, FileHeaderConstants header_for_new_file) {

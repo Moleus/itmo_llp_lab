@@ -53,12 +53,11 @@ Result page_manager_init(PageManager *self, const char *filename, uint32_t page_
     return OK;
 }
 
-Result page_manager_destroy(PageManager *self) {
+void page_manager_destroy(PageManager *self) {
     ASSERT_ARG_NOT_NULL(self);
 
     // TODO: remove all pages from memory
     free(self->pages);
-    return OK;
 }
 
 /*
@@ -84,7 +83,7 @@ Result page_manager_page_new(PageManager *self, Page **page) {
 }
 
 // TODO: why do we need this method?
-Result page_manager_page_destroy(PageManager *self, Page *page) {
+void page_manager_page_destroy(PageManager *self, Page *page) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_NOT_NULL(page);
 

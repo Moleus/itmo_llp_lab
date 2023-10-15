@@ -11,7 +11,7 @@ typedef struct FileHeaderConstants FileHeaderConstants;
 
 FileManager * file_manager_new();
 
-Result file_manager_destroy(FileManager *self);
+void file_manager_destroy(FileManager *self);
 
 Result file_manager_init(FileManager *self, const char *filename, FileHeaderConstants header_for_new_file);
 

@@ -30,7 +30,7 @@ struct ItemIterator{
 };
 
 Result page_manager_page_new(PageManager *self, Page **page);
-Result page_manager_page_destroy(PageManager *self, Page *page);
+void page_manager_page_destroy(PageManager *self, Page *page);
 
 int32_t page_manager_get_page_size(PageManager *self);
 

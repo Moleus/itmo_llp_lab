@@ -6,7 +6,7 @@ typedef struct FileState FileState;
 
 FileState * file_new();
 
-Result file_destroy(FileState *fs);
+void file_destroy(FileState *fs);
 
 Result file_open(FileState *fs, const char *filename);
 

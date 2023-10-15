@@ -19,7 +19,7 @@ typedef struct PageManager PageManager;
 
 PageManager * page_manager_new();
 
-Result page_manager_destroy(PageManager *self);
+void page_manager_destroy(PageManager *self);
 
 Result page_manager_init(PageManager *self, const char *filename, uint32_t page_size, int32_t file_signature);
 

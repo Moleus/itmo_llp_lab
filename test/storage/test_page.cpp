@@ -40,7 +40,7 @@ TEST(test_page, page_add_item) {
     EXPECT_EQ(result.metadata.size, expected.metadata.size);
     EXPECT_EQ(result.item_id.id, expected.item_id.id);
 
-    res = page_destroy(page);
+    page_destroy(page);
     EXPECT_STREQ(res.message, nullptr);
     ASSERT_EQ(res.status, RES_OK);
 }

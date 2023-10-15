@@ -88,7 +88,7 @@ typedef struct {
 
 Page * page_new(page_index_t page_id, int32_t page_size);
 
-Result page_destroy(Page *self);
+void page_destroy(Page *self);
 
 // payload size
 int32_t page_get_payload_size(int32_t page_size);

@@ -9,12 +9,11 @@ FileState * file_new() {
     return fs;
 }
 
-Result file_destroy(FileState *fs) {
+void file_destroy(FileState *fs) {
     ASSERT_ARG_NOT_NULL(fs);
     assert(fs->is_open == false);
 
     free(fs);
-    return OK;
 }
 
 Result file_open(FileState *fs, const char *filename) {

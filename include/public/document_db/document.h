@@ -45,7 +45,7 @@ typedef struct {
 
 Document *document_new();
 
-Result document_destroy(Document *self);
+void document_destroy(Document *self);
 
 Result document_add_node(Document *self, CreateNodeRequest *request, Node *result);
 

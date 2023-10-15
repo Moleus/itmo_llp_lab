@@ -54,6 +54,6 @@ Result node_add_child(Node *self, Node *child);
 
 Result node_delete_child(Node *self, size_t child_id);
 
-Result node_destroy(Node *self);
+void node_destroy(Node *self);
 
 Result node_get_value(Node *self, NodeValue *result);

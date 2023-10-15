@@ -14,7 +14,7 @@ typedef struct {
 
 Result document_tree_new(DocumentTree *self);
 
-Result document_tree_destroy(DocumentTree *self);
+void document_tree_destroy(DocumentTree *self);
 
 Result document_tree_add_document(DocumentTree *self, Document *new_document);
 
