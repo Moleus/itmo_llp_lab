@@ -7,6 +7,7 @@
 typedef struct {
     Node *root_node;
     PageManager *page_manager;
+    bool init_done;
 } Document;
 
 typedef struct {
@@ -44,6 +45,8 @@ typedef struct {
 } GetAllChildrenResult;
 
 Document *document_new();
+
+Result document_init(Document *self, const char *file_path, size_t page_size);
 
 void document_destroy(Document *self);
 

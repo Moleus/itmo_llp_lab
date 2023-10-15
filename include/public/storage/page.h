@@ -4,7 +4,7 @@
 
 typedef struct ItemPayload {
     void *data;
-    int32_t size;
+    uint32_t size;
 } ItemPayload;
 
 typedef struct Item Item;

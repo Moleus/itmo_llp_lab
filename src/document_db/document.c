@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "private/document_db/document.h"
 #include "private/storage/page_manager.h"
 
@@ -8,15 +9,19 @@ Document *document_new() {
     ASSERT_NOT_NULL(document, FAILED_TO_ALLOCATE_MEMORY)
     document->page_manager = page_manager_new();
     document->root_node = NULL;
+    document->init_done = false;
     return document;
 }
 
-Result document_init_all(Document *self, const char *file_path, size_t page_size) {
+Result document_init(Document *self, const char *file_path, size_t page_size) {
+    self->init_done = true;
     return page_manager_init(self->page_manager, file_path, page_size, FILE_SIGNATURE);
 }
 
 void document_destroy(Document *self) {
     ASSERT_ARG_NOT_NULL(self);
+    assert(self->init_done);
+
     page_manager_destroy(self->page_manager);
     free(self);
 }
@@ -89,6 +94,7 @@ Result document_add_node(Document *self, CreateNodeRequest *request, Node *resul
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_NOT_NULL(request);
     ASSERT_ARG_NOT_NULL(result);
+    assert(self->init_done);
 
     // if parent node is null, then this is root node. Then check that we have only 1 root node in file
     // if parent node is not null, then check that it exists in file
@@ -106,6 +112,7 @@ Result document_add_node(Document *self, CreateNodeRequest *request, Node *resul
 Result document_delete_node(Document *self, DeleteNodeRequest *request) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_NOT_NULL(request);
+    assert(self->init_done);
 
     // if node contains children - raise error
     ItemIterator *items_it = page_manager_get_items(self->page_manager);
@@ -144,6 +151,7 @@ Result document_delete_node(Document *self, DeleteNodeRequest *request) {
 Result document_update_node(Document *self, UpdateNodeRequest *request) {
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_NOT_NULL(request);
+    assert(self->init_done);
     // delete + add
 
     DeleteNodeRequest delete_request = {
@@ -165,6 +173,7 @@ Result document_add_bulk_nodes(Document *self, CreateMultipleNodesRequest *reque
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_NOT_NULL(request);
     ASSERT_ARG_NOT_NULL(result);
+    assert(self->init_done);
 
     if (request->count == 0) {
         return ERROR("Bulk add, empty request");
@@ -201,6 +210,7 @@ Result document_get_all_children(Document *self, GetAllChildrenRequest *request,
     ASSERT_ARG_NOT_NULL(self);
     ASSERT_ARG_NOT_NULL(request);
     ASSERT_ARG_NOT_NULL(result);
+    assert(self->init_done);
 
     ItemIterator *items_it = page_manager_get_items(self->page_manager);
 

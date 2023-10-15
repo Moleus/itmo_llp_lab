@@ -35,7 +35,7 @@ uint32_t page_manager_get_page_size(PageManager *self);
 
 uint32_t page_manager_get_pages_count(PageManager *self);
 
-Result page_manager_set_pages_count(PageManager *self, int32_t pages_count);
+Result page_manager_set_pages_count(PageManager *self, uint32_t pages_count);
 
 Page * page_manager_get_current_free_page(PageManager *self);
 
@@ -48,3 +48,11 @@ Result page_manager_flush_page(PageManager *self, Page *page);
 // Вопрос: где хранить item_id
 
 Result page_manager_get_page_from_ram(PageManager *self, page_index_t page_id, Page **result);
+
+size_t page_manager_get_page_offset(PageManager *self, page_index_t page_id);
+
+page_index_t page_manager_get_last_page_id(PageManager *self);
+
+void page_manager_after_page_read(PageManager *self, Page* page);
+
+size_t convert_to_file_offset(PageManager *self, page_index_t page_id, size_t offset_in_page);

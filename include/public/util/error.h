@@ -35,17 +35,17 @@ static const char *error_descriptions[] = {
 
 static void exit_with_msg_arg(ErrorCodes error_code, const char *details, const char* file, int line) {
     // TODO: check that it's legal
-    if (errno != 0) {
-        const char* format = "Error: %s. Caused by %s\n";
-        char buf[strlen(format) + strlen(error_descriptions[error_code]) + strlen(strerror(errno)) + 1];
-        sprintf(buf, format, error_descriptions[error_code], strerror(errno));
-        log_error(file, line, buf);
-    } else {
-        const char* format = "Error: %s. Details: %s\n";
-        char buf[strlen(format) + strlen(error_descriptions[error_code]) + strlen(details) + 1];
-        sprintf(buf, format, error_descriptions[error_code], details);
-        log_error(file, line, buf);
-    }
+//    if (errno != 0) {
+//        const char* format = "Error: %s. Caused by %s\n";
+//        char buf[strlen(format) + strlen(error_descriptions[error_code]) + strlen(strerror(errno)) + 1];
+//        sprintf(buf, format, error_descriptions[error_code], strerror(errno));
+//        log_error(file, line, buf);
+//    } else {
+    const char* format = "Error: %s. Details: %s\n";
+    char buf[strlen(format) + strlen(error_descriptions[error_code]) + strlen(details) + 1];
+    sprintf(buf, format, error_descriptions[error_code], details);
+    log_error(file, line, buf);
+//    }
 
     exit(1);
 }

@@ -24,6 +24,7 @@ int main(int argc, char const *argv[])
         },
     };
     Document *doc = document_new();
+    document_init(doc, "/tmp/llp-heap-file", 512);
     Node string_node;
     Node double_node;
     document_add_node(doc, &string_req, &string_node);
