@@ -60,18 +60,17 @@ TEST(test_page_manager, test_add_after_delete) {
     ItemAddResult add_result2;
     page_manager_put_item(pm, page_manager_get_current_free_page(pm), payload, &add_result1);
     page_manager_put_item(pm, page_manager_get_current_free_page(pm), payload, &add_result2);
-    Item *item = nullptr;
-    Result res = page_get_item(pm->current_free_page, add_result1.metadata.item_id, item);
+    Item item;
+    Result res = page_manager_get_item(pm, pm->current_free_page, add_result1.metadata.item_id, &item);
     ASSERT_EQ(res.status, RES_OK);
-    res = page_manager_delete_item(pm, pm->current_free_page, item);
+    res = page_manager_delete_item(pm, pm->current_free_page, &item);
     ASSERT_EQ(res.status, RES_OK);
     ASSERT_EQ(pm->current_free_page->page_header.items_count, 1);
     ASSERT_EQ(pm->current_free_page->page_header.free_space_start_offset,
               sizeof(PageHeader) + sizeof(ItemMetadata) * 2);
     ASSERT_EQ(pm->current_free_page->page_header.free_space_end_offset, PAGE_SIZE - 8 * 2);
     ASSERT_EQ(pm->current_free_page->page_header.next_item_id.id, 2);
-    page_get_item(pm->current_free_page, add_result1.metadata.item_id, item);
-    ASSERT_EQ(item->is_deleted, true);
+    ASSERT_EQ(item.is_deleted, true);
 }
 
 // add large item which is larger than page size. Check that it is split into 2 pages

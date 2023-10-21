@@ -7,6 +7,7 @@ extern "C" {
 TEST(test_file_manager, test_file_manager_new) {
     FileManager *fm = file_manager_new();
     ASSERT_NE(fm->file, nullptr);
+    file_manager_open(fm, "/tmp/test_file_manager.txt");
     file_manager_destroy(fm);
 }
 
@@ -24,7 +25,7 @@ TEST(test_file_manager, test_file_manager_init) {
     ASSERT_EQ(fm->file->size, 0);
     ASSERT_EQ(fm->header.constants.signature, header_for_new_file.signature);
     ASSERT_EQ(fm->header.constants.page_size, header_for_new_file.page_size);
-    ASSERT_EQ(fm->header.dynamic.file_size, 0);
+    ASSERT_EQ(fm->header.dynamic.file_size, sizeof(FileHeader));
     ASSERT_EQ(fm->header.dynamic.current_free_page, 0);
     ASSERT_EQ(fm->header.dynamic.page_count, 0);
     file_manager_destroy(fm);

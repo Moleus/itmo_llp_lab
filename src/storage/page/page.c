@@ -144,6 +144,7 @@ Result page_delete_item(Page *self, Item *item) {
 
     free(item->payload.data);
     item->is_deleted = true;
+    metadata->is_deleted = true;
     self->page_header.items_count--;
     // if this was the last item in page then we can just move free space start offset
     //TODO: test this and check data consistency. Theoretically, we don't care about payload, but headers.

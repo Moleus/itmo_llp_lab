@@ -124,6 +124,7 @@ Result page_manager_delete_item(PageManager *self, Page *page, Item *item) {
         // continue
         current_page_idx = page_get_item_continuation(current_page, item_to_delete);
     }
+    assert(item_to_delete->is_deleted == true);
     return OK;
 }
 
