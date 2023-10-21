@@ -40,6 +40,6 @@ jobs:
           configure-options: -G Ninja
           build-type: ${{ matrix.config.build_type }}
 
-#      - name: Test
-#        working-directory: ${{ steps.strings.outputs.build-output-dir }}
-#        run: ctest --build-config ${{ matrix.build_type }}
+      - name: Test
+        working-directory: ${{ steps.strings.outputs.build-output-dir }}/build/test
+        run: ctest --build-config ${{ matrix.build_type }}
