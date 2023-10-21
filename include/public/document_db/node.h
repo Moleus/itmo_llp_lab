@@ -8,7 +8,7 @@ typedef struct __attribute__((packed)) {
     size_t length;
 } String;
 
-typedef enum {
+typedef enum __attribute__((packed)) {
     INT_32,
     DOUBLE,
     STRING,
