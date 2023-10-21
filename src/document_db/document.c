@@ -70,6 +70,8 @@ Result document_add_root_node(Document *self, Node *root) {
     }
     item_iterator_destroy(items_it);
 
+    root->id = (node_id_t) {.page_id = 0, .item_id = 0};
+
     return document_persist_new_node(self, root);
 }
 
