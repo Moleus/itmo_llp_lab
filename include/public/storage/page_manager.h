@@ -53,7 +53,8 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
 
 Result page_manager_delete_item(PageManager *self, Page *page, Item *item);
 
-Result page_manager_get_item(PageManager *self, Page *page, item_index_t item_id, Item *result);
+Result
+page_manager_get_item(PageManager *self, Page *page, item_index_t item_id, uint8_t *payload_buffer, Item *result);
 
 // free page management
 Result page_manager_get_page_for_data(PageManager *self, ItemPayload data, Page **result);

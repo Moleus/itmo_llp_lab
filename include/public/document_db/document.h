@@ -4,10 +4,11 @@
 #include "public/storage/page_manager.h"
 #include "node.h"
 
-typedef struct __attribute__((packed)) {
+typedef struct {
     Node *root_node;
     PageManager *page_manager;
     bool init_done;
+    uint
 } Document;
 
 typedef struct {

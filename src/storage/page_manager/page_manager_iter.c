@@ -54,14 +54,17 @@ ItemIterator *item_iterator_new(PageManager *page_manager, Item *reusable_memory
     ItemIterator *item_it = malloc(sizeof(ItemIterator));
     ASSERT_NOT_NULL(item_it, FAILED_TO_ALLOCATE_MEMORY)
 
+    struct AllocatedPayload *allocated_payloads = malloc(sizeof(struct AllocatedPayload));
+
     PageIterator *page_iterator = page_manager_get_pages(page_manager);
     *reusable_memory = (Item) {.is_deleted = true, .index_in_page.id = -1, .payload = {.data = NULL, .size = 0}};
-    *item_it = (ItemIterator) {.page_iterator = page_iterator, .current_item = reusable_memory, .current_item_index = -1};
+    *item_it = (ItemIterator) {.page_iterator = page_iterator, .current_item = reusable_memory, .current_item_index = -1, .allocated_payloads = allocated_payloads, .allocated_payloads_count = 0};
     return item_it;
 }
 
 void item_iterator_destroy(ItemIterator *self) {
     ASSERT_ARG_NOT_NULL(self)
+    item_iterator_free_payloads(self);
     page_iterator_destroy(self->page_iterator);
     free(self);
 }
@@ -106,6 +109,40 @@ bool item_iterator_has_next(ItemIterator *self) {
     return false;
 }
 
+uint8_t *item_iterator_allocate_payload(ItemIterator *self, size_t size) {
+    ASSERT_ARG_NOT_NULL(self)
+
+    uint8_t *payload = malloc(size);
+    ASSERT_NOT_NULL(payload, FAILED_TO_ALLOCATE_MEMORY)
+
+    struct AllocatedPayload *allocated_payload = malloc(sizeof(struct AllocatedPayload));
+    ASSERT_NOT_NULL(allocated_payload, FAILED_TO_ALLOCATE_MEMORY)
+
+    self->allocated_payloads->payload = payload;
+    self->allocated_payloads->next = allocated_payload;
+    self->allocated_payloads_count++;
+
+    return payload;
+}
+
+void item_iterator_free_payloads(ItemIterator *self) {
+    ASSERT_ARG_NOT_NULL(self)
+
+    uint32_t i = 0;
+    struct AllocatedPayload *allocated_payload = self->allocated_payloads;
+    while (allocated_payload != NULL) {
+        i++;
+        struct AllocatedPayload *next = allocated_payload->next;
+        if (allocated_payload->payload != NULL) {
+            free(allocated_payload->payload);
+        }
+        free(allocated_payload);
+        allocated_payload = next;
+    }
+    LOG_DEBUG("ItemIterator - freed %d payloads. Count was %d", i, self->allocated_payloads_count);
+    self->allocated_payloads_count = 0;
+}
+
 Result item_iterator_next(ItemIterator *self, Item *result) {
     ASSERT_ARG_NOT_NULL(self)
     ASSERT_ARG_NOT_NULL(result)
@@ -123,7 +160,14 @@ Result item_iterator_next(ItemIterator *self, Item *result) {
         ABORT_EXIT(INTERNAL_LIB_ERROR, "It should not be possible because has_next sets current_page or returns false")
     }
 
-    Result res = page_manager_get_item(self->page_iterator->page_manager, cur_page, next_item(old_item_index), result);
+    uint32_t payload_size;
+    Result res = page_manager_calculate_large_item_size(self->page_iterator->page_manager, cur_page,
+                                                                   next_item(old_item_index), &payload_size);
+    RETURN_IF_FAIL(res, "Failed to calculate large item size");
+    uint8_t *buffer = item_iterator_allocate_payload(self, payload_size);
+
+    res = page_manager_get_item(self->page_iterator->page_manager, cur_page, next_item(old_item_index), buffer,
+                                       result);
     RETURN_IF_FAIL(res, "Failed to get item from page")
     return OK;
 }

@@ -22,10 +22,17 @@ struct PageIterator {
     Page *current_page;
 };
 
-struct ItemIterator{
+struct AllocatedPayload {
+    uint8_t *payload;
+    struct AllocatedPayload *next;
+};
+
+struct ItemIterator {
     PageIterator *page_iterator;
     item_index_t current_item_index;
     Item *current_item;
+    uint32_t allocated_payloads_count;
+    struct AllocatedPayload *allocated_payloads;
 };
 
 Result page_manager_page_new(PageManager *self, Page **page);
@@ -56,3 +63,9 @@ page_index_t page_manager_get_last_page_id(PageManager *self);
 void page_manager_add_page_to_cache(PageManager *self, Page* page);
 
 size_t convert_to_file_offset(PageManager *self, page_index_t page_id, size_t offset_in_page);
+
+uint8_t *item_iterator_allocate_payload(ItemIterator *self, size_t size);
+
+void item_iterator_free_payloads(ItemIterator *self);
+
+Result page_manager_calculate_large_item_size(PageManager *self, Page *page, item_index_t item_id, uint32_t *result);

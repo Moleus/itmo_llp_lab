@@ -109,8 +109,12 @@ Result page_manager_delete_item(PageManager *self, Page *page, Item *item) {
             Result res = page_manager_read_page(self, current_page_idx, &current_page);
             ABORT_IF_FAIL(res, "Delete item - Failed to get page from disk")
             // continuation of item should always be the first item in page;
-            res = page_manager_get_item(self, current_page, item_id(0), item_to_delete);
+            uint32_t payload_size;
+            page_manager_calculate_large_item_size(self, current_page, item_id(0), &payload_size);
+            uint8_t buffer[payload_size];
+            res = page_manager_get_item(self, current_page, item_id(0), buffer, item_to_delete);
             ABORT_IF_FAIL(res, "Delete item - Failed to read item from page in memory")
+            assert(item_to_delete->payload.size == payload_size);
         }
         // persist in memory
         Result res = page_delete_item(current_page, item_to_delete);
@@ -128,9 +132,42 @@ Result page_manager_delete_item(PageManager *self, Page *page, Item *item) {
     return OK;
 }
 
-Result page_manager_get_item(PageManager *self, Page *page, item_index_t item_id, Item *result) {
+Result page_manager_calculate_large_item_size(PageManager *self, Page *page, item_index_t item_id, uint32_t *result) {
     ASSERT_ARG_NOT_NULL(self)
     ASSERT_ARG_NOT_NULL(page)
+    ASSERT_ARG_NOT_NULL(result)
+
+    Page *current_page = page;
+    page_index_t current_page_idx = page_get_id(current_page);
+    Item tmp_read_item = {0};
+    tmp_read_item.index_in_page = item_id;
+    *result = 0;
+
+    while (current_page_idx.id != NULL_PAGE_INDEX.id) {
+        if (current_page_idx.id != page_get_id(page).id) {
+            // is next page
+            current_page = NULL;
+            Result res = page_manager_read_page(self, current_page_idx, &current_page);
+            ABORT_IF_FAIL(res, "Failed to get page from disk")
+            // continuation of item should always be the first item in page;
+            tmp_read_item.index_in_page.id = 0;
+        }
+        // persist in memory
+        Result res = page_get_item(current_page, tmp_read_item.index_in_page, &tmp_read_item);
+        ABORT_IF_FAIL(res, "Failed to read item from page in memory")
+
+        *result = *result + tmp_read_item.payload.size;
+
+        // continue
+        current_page_idx = page_get_item_continuation(current_page, &tmp_read_item);
+    }
+    return OK;
+}
+
+Result page_manager_get_item(PageManager *self, Page *page, item_index_t item_id, uint8_t *payload_buffer, Item *result) {
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_NOT_NULL(page)
+    ASSERT_ARG_NOT_NULL(payload_buffer)
     ASSERT_ARG_NOT_NULL(result)
 
     Page *current_page = page;
@@ -138,8 +175,6 @@ Result page_manager_get_item(PageManager *self, Page *page, item_index_t item_id
     uint32_t item_cum_size = 0;
     Item *tmp_read_item = result;
     tmp_read_item->index_in_page = item_id;
-    uint32_t buf_size = page_manager_get_page_size(self);
-    uint8_t *tmp_buffer_for_data = malloc(buf_size);
 
     while (current_page_idx.id != NULL_PAGE_INDEX.id) {
         if (current_page_idx.id != page_get_id(page).id) {
@@ -155,17 +190,12 @@ Result page_manager_get_item(PageManager *self, Page *page, item_index_t item_id
         ABORT_IF_FAIL(res, "Failed to read item from page in memory")
         // TODO: sum item_cum_size and place memory in result
         item_cum_size += tmp_read_item->payload.size;
-        if (item_cum_size > buf_size) {
-            tmp_buffer_for_data = realloc(tmp_buffer_for_data, item_cum_size);
-            ASSERT_NOT_NULL(tmp_buffer_for_data, FAILED_TO_ALLOCATE_MEMORY);
-        }
-        memcpy(tmp_buffer_for_data + item_cum_size - tmp_read_item->payload.size, tmp_read_item->payload.data,
+        memcpy(payload_buffer + item_cum_size - tmp_read_item->payload.size, tmp_read_item->payload.data,
                tmp_read_item->payload.size);
-
         // continue
         current_page_idx = page_get_item_continuation(current_page, tmp_read_item);
     }
-    result->payload.data = tmp_buffer_for_data;
+    result->payload.data = payload_buffer;
     result->payload.size = item_cum_size;
     return OK;
 }

@@ -41,6 +41,7 @@ Result page_get_item(Page *self, item_index_t item_id, Item *item) {
 
     LOG_DEBUG("Getting item with id %d", item_id.id);
     if (item_id.id >= self->page_header.next_item_id.id) {
+        LOG_ERR("Item id %d is out of range. Max id: %d", item_id.id, self->page_header.next_item_id.id - 1);
         return ERROR("Item id is out of range");
     }
 
@@ -142,7 +143,8 @@ Result page_delete_item(Page *self, Item *item) {
     LOG_DEBUG("Page: %d. Deleting item with id %d", self->page_header.page_id.id, item->index_in_page.id);
     ItemMetadata *metadata = get_metadata(self, item->index_in_page);
 
-    free(item->payload.data);
+    // item is freed by item iterator or leave in stack
+    //    free(item->payload.data);
     item->is_deleted = true;
     metadata->is_deleted = true;
     self->page_header.items_count--;

@@ -61,7 +61,8 @@ TEST(test_page_manager, test_add_after_delete) {
     page_manager_put_item(pm, page_manager_get_current_free_page(pm), payload, &add_result1);
     page_manager_put_item(pm, page_manager_get_current_free_page(pm), payload, &add_result2);
     Item item;
-    Result res = page_manager_get_item(pm, pm->current_free_page, add_result1.metadata.item_id, &item);
+    uint8_t payload_buffer[8];
+    Result res = page_manager_get_item(pm, pm->current_free_page, add_result1.metadata.item_id, payload_buffer, &item);
     ASSERT_EQ(res.status, RES_OK);
     res = page_manager_delete_item(pm, pm->current_free_page, &item);
     ASSERT_EQ(res.status, RES_OK);
@@ -130,7 +131,8 @@ TEST(test_page_manager, test_delete_large_item) {
     ASSERT_EQ(res.status, RES_OK);
 
     Item item;
-    res = page_manager_get_item(pm, first_page, add_result.metadata.item_id, &item);
+    uint8_t payload_buffer[8];
+    res = page_manager_get_item(pm, first_page, add_result.metadata.item_id, payload_buffer, &item);
     ASSERT_EQ(res.status, RES_OK);
     ASSERT_EQ(item.payload.size, payload_size);
     // assert data content is equal
