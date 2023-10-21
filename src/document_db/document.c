@@ -120,6 +120,7 @@ Result document_delete_node(Document *self, DeleteNodeRequest *request) {
     ASSERT_ARG_NOT_NULL(request)
     assert(self->init_done);
 
+    LOG_DEBUG("Document - Deleting node (%d:%d)", request->node->id.page_id, request->node->id.item_id);
     // if node contains children - raise error
     Item item;
     ItemIterator *items_it = page_manager_get_items(self->page_manager, &item);
