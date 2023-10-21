@@ -27,8 +27,8 @@ int main(int argc, char const *argv[])
         return 1;
     }
 
-    Node string_node;
-    Node double_node;
+    Node string_node = {0};
+    Node double_node = {0};
     res = document_add_node(doc, &string_req, &string_node);
     if (res.status != RES_OK) {
         LOG_ERR("failed to add node string: %s", res.message);

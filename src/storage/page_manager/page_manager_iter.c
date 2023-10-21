@@ -54,7 +54,7 @@ ItemIterator *item_iterator_new(PageManager *page_manager, Item *reusable_memory
     ItemIterator *item_it = malloc(sizeof(ItemIterator));
     ASSERT_NOT_NULL(item_it, FAILED_TO_ALLOCATE_MEMORY)
 
-    struct AllocatedPayload *allocated_payloads = malloc(sizeof(struct AllocatedPayload));
+    struct AllocatedPayload *allocated_payloads = calloc(1, sizeof(struct AllocatedPayload));
 
     PageIterator *page_iterator = page_manager_get_pages(page_manager);
     *reusable_memory = (Item) {.is_deleted = true, .index_in_page.id = -1, .payload = {.data = NULL, .size = 0}};
@@ -112,10 +112,10 @@ bool item_iterator_has_next(ItemIterator *self) {
 uint8_t *item_iterator_allocate_payload(ItemIterator *self, size_t size) {
     ASSERT_ARG_NOT_NULL(self)
 
-    uint8_t *payload = malloc(size);
+    uint8_t *payload = calloc(1, size);
     ASSERT_NOT_NULL(payload, FAILED_TO_ALLOCATE_MEMORY)
 
-    struct AllocatedPayload *allocated_payload = malloc(sizeof(struct AllocatedPayload));
+    struct AllocatedPayload *allocated_payload = calloc(1, sizeof(struct AllocatedPayload));
     ASSERT_NOT_NULL(allocated_payload, FAILED_TO_ALLOCATE_MEMORY)
 
     self->allocated_payloads->payload = payload;
@@ -168,6 +168,7 @@ Result item_iterator_next(ItemIterator *self, Item *result) {
 
     res = page_manager_get_item(self->page_iterator->page_manager, cur_page, next_item(old_item_index), buffer,
                                        result);
+    assert(result->payload.size == payload_size);
     RETURN_IF_FAIL(res, "Failed to get item from page")
     return OK;
 }

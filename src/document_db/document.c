@@ -85,10 +85,10 @@ Result document_add_child_node(Document *self, Node *current_node) {
     while (item_iterator_has_next(items_it)) {
         Result get_item_res = item_iterator_next(items_it, &item);
         RETURN_IF_FAIL(get_item_res, "failed to add node")
-        // TODO: item.payload.data is invalid
         Node *tmp_node = item.payload.data;
         if (node_id_eq(tmp_node->id, current_node->parent_id)) {
             // found parent node. Ok. Adding new
+            item_iterator_destroy(items_it);
             return document_persist_new_node(self, current_node);
         }
     }
@@ -122,7 +122,7 @@ Result document_delete_node(Document *self, DeleteNodeRequest *request) {
 
     LOG_DEBUG("Document - Deleting node (%d:%d)", request->node->id.page_id, request->node->id.item_id);
     // if node contains children - raise error
-    Item item;
+    Item item = {0};
     ItemIterator *items_it = page_manager_get_items(self->page_manager, &item);
     while (item_iterator_has_next(items_it)) {
         Result get_item_res = item_iterator_next(items_it, &item);
@@ -131,6 +131,7 @@ Result document_delete_node(Document *self, DeleteNodeRequest *request) {
 
         if (node_id_eq(tmp_node->parent_id, request->node->id)) {
             // We are trying to delete node with children
+            item_iterator_destroy(items_it);
             ABORT_EXIT(INTERNAL_LIB_ERROR, "Node contains children")
         }
     }
@@ -144,6 +145,7 @@ Result document_delete_node(Document *self, DeleteNodeRequest *request) {
         if (node_id_eq(tmp_node->id, request->node->id)) {
             // We found our node
             Page *page = items_it->page_iterator->current_page;
+            item_iterator_destroy(items_it);
             return page_manager_delete_item(self->page_manager, page, &item);
         }
     }
