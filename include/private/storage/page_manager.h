@@ -7,7 +7,7 @@
 // in-memory objects
 struct PageManager{
     FileManager *file_manager;
-    PageMetaInfo *meta_pages;
+    AllocatedPage *meta_pages;
     // represents amount of pages loaded in ram
     int32_t pages_in_memory;
     //TODO: check usage of pages_count.

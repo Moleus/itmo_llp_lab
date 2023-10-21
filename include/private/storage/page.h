@@ -45,11 +45,11 @@ struct __attribute__((packed)) PageHeader {
     uint32_t free_space_end_offset;
 };
 
-typedef struct PageMetaInfo PageMetaInfo;
+typedef struct AllocatedPage AllocatedPage;
 
-struct PageMetaInfo{
+struct AllocatedPage {
     Page *rawPage;
-    PageMetaInfo *next_page;
+    AllocatedPage *next;
 };
 
 struct __attribute__((packed)) Page {

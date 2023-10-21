@@ -5,8 +5,6 @@
 #include "private/storage/page.h"
 #include "private/storage/file_manager.h"
 
-#define ITEM_METADATA_SIZE ((int32_t) sizeof(ItemMetadata))
-
 Result write_page_on_disk(PageManager *self, Page *page) {
     // persist page on disk
     size_t page_offset_in_file = page_manager_get_page_offset(self, page->page_header.page_id);
