@@ -1,8 +1,8 @@
 #include "gtest/gtest.h"
 
 extern "C" {
-    #include "private/storage/page_manager.h"
-    #include "public/util/common.h"
+#include "private/storage/page_manager.h"
+#include "public/util/common.h"
 }
 
 #define PAGE_SIZE 128
@@ -11,8 +11,8 @@ extern "C" {
 
 ItemPayload get_payload() {
     ItemPayload payload = {
-            .data = (uint8_t *) "\x00\x01\x02\x03\x04\x05\x06\x07",
-            .size = 8
+            .size = 8,
+            .data = (uint8_t *) "\x00\x01\x02\x03\x04\x05\x06\x07"
     };
     return payload;
 }
@@ -61,14 +61,52 @@ TEST(test_page_manager, test_add_after_delete) {
     page_manager_put_item(pm, page_manager_get_current_free_page(pm), payload, &add_result1);
     page_manager_put_item(pm, page_manager_get_current_free_page(pm), payload, &add_result2);
     Item *item = nullptr;
-    Result res = page_get_item(pm->current_free_page, add_result1.metadata.item_id, &item);
+    Result res = page_get_item(pm->current_free_page, add_result1.metadata.item_id, item);
     ASSERT_EQ(res.status, RES_OK);
     res = page_manager_delete_item(pm, pm->current_free_page, item);
     ASSERT_EQ(res.status, RES_OK);
     ASSERT_EQ(pm->current_free_page->page_header.items_count, 1);
-    ASSERT_EQ(pm->current_free_page->page_header.free_space_start_offset, sizeof(PageHeader) + sizeof(ItemMetadata) * 2);
+    ASSERT_EQ(pm->current_free_page->page_header.free_space_start_offset,
+              sizeof(PageHeader) + sizeof(ItemMetadata) * 2);
     ASSERT_EQ(pm->current_free_page->page_header.free_space_end_offset, PAGE_SIZE - 8 * 2);
     ASSERT_EQ(pm->current_free_page->page_header.next_item_id.id, 2);
-    page_get_item(pm->current_free_page, add_result1.metadata.item_id, &item);
+    page_get_item(pm->current_free_page, add_result1.metadata.item_id, item);
     ASSERT_EQ(item->is_deleted, true);
+}
+
+// add large item which is larger than page size. Check that it is split into 2 pages
+TEST(test_page_manager, test_add_large_item) {
+    PageManager *pm = page_manager_new();
+    remove(FILE_PATH);
+    page_manager_init(pm, FILE_PATH, PAGE_SIZE, SIGNATURE);
+
+    // create continues 0xFF data with size 128
+    const uint32_t payload_size = PAGE_SIZE;
+    uint8_t data[payload_size] = {0};
+    memset(data, 0xFF, payload_size);
+
+    ItemPayload payload = {
+            .size = payload_size,
+            .data = data
+    };
+    ItemAddResult add_result;
+    uint32_t expected_bytes_written = PAGE_SIZE - sizeof(PageHeader) - sizeof(ItemMetadata);
+    uint32_t expected_bytes_on_second_page = payload_size - expected_bytes_written;
+    Page *first_page = page_manager_get_current_free_page(pm);
+    Result res = page_manager_put_item(pm, first_page, payload, &add_result);
+    ASSERT_EQ(res.status, RES_OK);
+    ASSERT_EQ(add_result.write_status.complete, true);
+    ASSERT_EQ(add_result.write_status.bytes_written, payload_size);
+    ASSERT_EQ(add_result.metadata.continues_on_page.id, 1);
+    ASSERT_EQ(add_result.metadata.size, expected_bytes_written);
+    ASSERT_EQ(add_result.metadata.item_id.id, 0);
+    ASSERT_EQ(first_page->page_header.items_count, 1);
+    ASSERT_EQ(first_page->page_header.next_item_id.id, 1);
+
+    Page *second_page = page_manager_get_current_free_page(pm);
+    ASSERT_EQ(second_page->page_header.page_id.id, 1);
+    ASSERT_EQ(second_page->page_header.items_count, 1);
+    ASSERT_EQ(second_page->page_header.next_item_id.id, 1);
+    ASSERT_EQ(second_page->page_header.free_space_start_offset, sizeof(PageHeader) + sizeof(ItemMetadata));
+    ASSERT_EQ(second_page->page_header.free_space_end_offset, PAGE_SIZE - expected_bytes_on_second_page);
 }

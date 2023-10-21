@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <mpif.h>
 #include "private/storage/page_manager.h"
 
 //TODO: think if it's correct to include private header
@@ -62,16 +61,18 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
         // If it is not the first iteration then the current_page should have been allocated
         assert(current_page != NULL);
         Page *free_page = NULL;
-        if (page_can_fit_payload(current_page, payload.size) == false) {
+        uint32_t payload_size = payload.size - bytes_written;
+        if (page_can_fit_payload(current_page, payload_size) == false) {
             // early allocate next page
             Result res = page_manager_get_new_free_page(self, &free_page);
             ABORT_IF_FAIL(res, "Failed to allocate one more page for large payload")
             continue_on_page = free_page->page_header.page_id;
+            payload_size = page_get_payload_available_space(current_page);
         }
         ItemPayload payload_to_write = {
                 // TODO: can add pointers?
                 .data = payload.data + bytes_written,
-                .size = page_get_payload_available_space(current_page)
+                .size = payload_size
         };
         Result res = page_manager_add_part_of_item(self, current_page, payload_to_write, continue_on_page,
                                                    tmp_add_result);
@@ -83,6 +84,11 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
         assert(tmp_add_result != item_add_result);
         current_page = free_page;
     }
+    item_add_result->write_status = tmp_add_result->write_status;
+    item_add_result->write_status.bytes_written = bytes_written;
+
+    assert(bytes_written == payload.size);
+    assert(item_add_result->write_status.complete == true);
     return OK;
 }
 

@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <mpif.h>
 #include "private/storage/page.h"
 
 /*
@@ -167,7 +166,7 @@ Result page_delete_item(Page *self, Item *item) {
         // decrement next_item_id until we find not deleted item
         // TODO: write updated page_header on disk
         int32_t last_item_index = self->page_header.next_item_id.id--;
-        while (self->page_header.next_item_id.id > 0 && get_metadata(self, item_id(last_item_index)).is_deleted) {
+        while (self->page_header.next_item_id.id > 0 && get_metadata(self, item_id(last_item_index))->is_deleted) {
             // TODO: does it change actual data in memory?
             last_item_index = self->page_header.next_item_id.id--;
         }

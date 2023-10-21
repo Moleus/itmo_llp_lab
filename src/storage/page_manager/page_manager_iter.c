@@ -114,7 +114,7 @@ Result item_iterator_next(ItemIterator *self, Item **result) {
         ABORT_EXIT(INTERNAL_LIB_ERROR, "It should not be possible because has_next sets current_page or returns false")
     }
 
-    Result res = page_get_item(cur_page, next_item(old_item_index), result);
+    Result res = page_get_item(cur_page, next_item(old_item_index), *result);
     RETURN_IF_FAIL(res, "Failed to get item from page")
     self->current_item = *result;
     return OK;
