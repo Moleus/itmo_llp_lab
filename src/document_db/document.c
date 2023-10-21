@@ -57,6 +57,7 @@ Result document_add_root_node(Document *self, Node *root) {
     // if we have 1 root node, then return error
     // if we have 0 root nodes, then create new root node
 
+    LOG_DEBUG("Document - Adding root node with type %d", root->value.type);
 
     Item item;
     ItemIterator *items_it = page_manager_get_items(self->page_manager, &item);
@@ -77,6 +78,9 @@ Result document_add_root_node(Document *self, Node *root) {
 
 Result document_add_child_node(Document *self, Node *current_node) {
     Item item;
+
+    LOG_DEBUG("Document - Adding child node with type %d to parent: (%d:%d)", current_node->value.type,
+              current_node->parent_id.page_id, current_node->parent_id.item_id);
     ItemIterator *items_it = page_manager_get_items(self->page_manager, &item);
     while (item_iterator_has_next(items_it)) {
         Result get_item_res = item_iterator_next(items_it, &item);

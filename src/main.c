@@ -18,7 +18,10 @@ int main(int argc, char const *argv[])
         },
     };
     Document *doc = document_new();
-    Result res = document_init(doc, "/tmp/llp-heap-file", 512);
+    const char* filepath = "/tmp/llp-heap-file";
+    remove(filepath);
+
+    Result res = document_init(doc, filepath, 512);
     if (res.status != RES_OK) {
         LOG_ERR("failed to init document: %s", res.message);
         return 1;
