@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <mpif.h>
 #include "private/storage/page.h"
 
 /*
@@ -67,7 +68,8 @@ Result page_get_item(Page *self, item_index_t item_id, Item *item) {
     assert(self->page_header.next_item_id.id > item_id.id);
 
     // TODO: check that item pointer is assigned correctly
-    *item = create_item(self, (ItemPayload) {.data = get_item_data_addr(self, metadata->data_offset), .size = metadata->size});
+    *item = create_item(self, (ItemPayload) {.data = get_item_data_addr(self,
+                                                                        metadata->data_offset), .size = metadata->size});
 
     return OK;
 }
@@ -87,7 +89,8 @@ void page_put_item_data_in_page(Page *self, ItemPayload payload, uint32_t data_o
 }
 
 // private
-Result page_add_item_update_header(Page *self, ItemPayload payload, ItemAddResult *item_add_result) {
+Result page_add_item_update_header(Page *self, ItemPayload payload, page_index_t continues_on_page,
+                                   ItemAddResult *item_add_result) {
     // we place data in the reverse order staring from page end
     uint32_t data_offset = self->page_header.free_space_end_offset - payload.size;
     item_index_t item_id = self->page_header.next_item_id;
@@ -95,13 +98,14 @@ Result page_add_item_update_header(Page *self, ItemPayload payload, ItemAddResul
             .item_id = item_id,
             .data_offset = data_offset,
             .size = payload.size,
-            .continues_on_page = NULL_PAGE_INDEX
+            .continues_on_page = continues_on_page
     };
 
+    bool is_complete = continues_on_page.id != NULL_PAGE_INDEX.id;
     *item_add_result = (ItemAddResult) {
             .metadata_offset_in_page = self->page_header.free_space_start_offset,
             .metadata = metadata,
-            .write_status = (ItemWriteStatus) {.complete = true, .bytes_written = payload.size}
+            .write_status = (ItemWriteStatus) {.complete = is_complete, .bytes_written = payload.size}
     };
     self->page_header.free_space_start_offset =
             item_add_result->metadata_offset_in_page + (uint32_t) sizeof(ItemMetadata);
@@ -119,30 +123,22 @@ Result page_add_item_update_header(Page *self, ItemPayload payload, ItemAddResul
     return OK;
 }
 
+
 // public
-Result page_add_item(Page *self, ItemPayload payload, ItemAddResult *item_add_result) {
+/*
+ * Payload should fit into page
+ */
+Result page_add_item(Page *self, ItemPayload payload, page_index_t continues_on_page, ItemAddResult *item_add_result) {
     ASSERT_ARG_NOT_NULL(self)
     ASSERT_ARG_NOT_NULL(item_add_result)
 
     if (payload.size > page_get_payload_available_space(self)) {
-        LOG_WARN("Add failed. Page: %d, Available space: %d, payload size: %d", self->page_header.page_id.id,
+        LOG_ERR("Add failed. Page: %d, Available space: %d, payload size: %d", self->page_header.page_id.id,
                  page_get_payload_available_space(self), payload.size);
         ABORT_EXIT(INTERNAL_LIB_ERROR, "Can't add item to this page. Not enough space for metadata")
     }
 
-    size_t free_space_size = page_get_free_space_left(self);
-    if (payload.size > free_space_size) {
-        LOG_INFO("Large payload. Page: %d, Available space: %d, payload size: %d", self->page_header.page_id.id,
-                 page_get_payload_available_space(self), payload.size);
-        // we can only write part of the payload. Split it into two parts
-        ItemPayload partial_payload_head = payload;
-        partial_payload_head.size = page_get_payload_available_space(self);
-        page_add_item_update_header(self, partial_payload_head, item_add_result);
-        item_add_result->write_status.complete = false;
-        item_add_result->write_status.bytes_written = partial_payload_head.size;
-        return OK;
-    }
-    page_add_item_update_header(self, payload, item_add_result);
+    page_add_item_update_header(self, payload, continues_on_page, item_add_result);
 
     return OK;
 }

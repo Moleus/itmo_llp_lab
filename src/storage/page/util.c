@@ -17,3 +17,6 @@ uint32_t page_get_payload_size(uint32_t page_size) {
     return page_size - (uint32_t) HEADER_SIZE;
 }
 
+bool page_can_fit_payload(Page *self, uint32_t payload_size) {
+    return page_get_payload_available_space(self) >= payload_size;
+}

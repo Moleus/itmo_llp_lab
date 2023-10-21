@@ -16,3 +16,5 @@ typedef struct PageHeader PageHeader;
 typedef struct Page Page;
 
 size_t page_size(Page *self);
+
+bool page_can_fit_payload(Page *self, uint32_t payload_size);

@@ -7,6 +7,7 @@
 /*
  * Page should exist in memory or on disk
  * If page doesn't exist in memory then it will be loaded from disk
+ * This is the only method which loads page from disk
  */
 Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_page) {
     ASSERT_ARG_NOT_NULL(self)
@@ -27,8 +28,17 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_
         return OK;
     }
 
-    // TODO: can we use page_manager_page_new instead?
-    // no. Because here we get page by id. And new only allocates new page
+    // TODO: какие страницы мы храним в памяти?
+    // 1. current_free_page - незаполненная страница
+    // 2. текущая страница по которой мы итерируемся
+
+    // что делать с элементами, которые разбиты на несколько страниц?
+    // 1. Перед чтением мы аллоцируем столько места, сколько нужно под большой элемент
+    // 2. При чтении записываем в этот элемент. Получаем один большой элемент.
+    // 3. Странички не храним. После чтения они чистятся
+
+    // TODO: unload previous page from ram
+    //    self.
 
     // pass offset to file_manger and get page
     size_t page_offset_in_file = page_manager_get_page_offset(self, id);

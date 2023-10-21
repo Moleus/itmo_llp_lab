@@ -17,7 +17,7 @@ TEST(test_page, page_add_item) {
     payload.size = payload_size;
     payload.data = (void*) data;
     ItemAddResult result;
-    Result res = page_add_item(page, payload, &result);
+    Result res = page_add_item(page, payload, result, &result);
     EXPECT_STREQ(res.message, nullptr);
     ASSERT_EQ(res.status, RES_OK);
 

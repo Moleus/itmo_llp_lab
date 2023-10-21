@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <mpif.h>
 #include "private/storage/page_manager.h"
 
 //TODO: think if it's correct to include private header
@@ -18,51 +19,70 @@ Result write_page_on_disk(PageManager *self, Page *page) {
     return OK;
 }
 
-Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload, ItemAddResult *item_add_result) {
+Result page_manager_add_part_of_item(PageManager *self, Page *page, ItemPayload payload, page_index_t continues_on_page,
+                                     ItemAddResult *item_add_result) {
     ASSERT_ARG_NOT_NULL(self)
     ASSERT_ARG_NOT_NULL(page)
     ASSERT_ARG_NOT_NULL(item_add_result)
 
-    // persist in memory
-    Result res = page_add_item(page, payload, item_add_result);
+    Result res = page_add_item(page, payload, continues_on_page, item_add_result);
     RETURN_IF_FAIL(res, "Failed to add item to page in memory")
 
     assert(item_add_result->metadata_offset_in_page >= sizeof(PageHeader));
-    LOG_DEBUG("Add item %d to page %d. iSize: %d. Status: %b. Offset in Page %d. Total items: %d", item_add_result->metadata.item_id.id,
+    LOG_DEBUG("Add item %d to page %d. iSize: %d. Status: %b. Offset in Page %d. Total items: %d",
+              item_add_result->metadata.item_id.id,
               page->page_header.page_id.id, item_add_result->metadata.size, item_add_result->write_status.complete,
               item_add_result->metadata_offset_in_page, page->page_header.items_count);
     // Persist head of the item on disk. We return only info about the first part in itemAddResult
-    write_page_on_disk(self, page);
+    return write_page_on_disk(self, page);
+}
 
-    ItemAddResult tmp_add_result = *item_add_result;
+Result page_manager_get_new_free_page(PageManager *self, Page **free_page) {
+    Result res = page_manager_page_new(self, free_page);
+    ABORT_IF_FAIL(res, "Failed to allocate one more page for large payload")
+    // !!! update current_free page. Forget about the old one.
+    return page_manager_set_current_free_page(self, *free_page);
+}
+
+Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload, ItemAddResult *item_add_result) {
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_NOT_NULL(page)
+    ASSERT_ARG_NOT_NULL(item_add_result)
+    ASSERT_ARG_NOT_NULL(payload.data);
+    assert(payload.size > 0);
+
+    page_index_t continue_on_page = NULL_PAGE_INDEX;
+    uint32_t bytes_written = 0;
+    ItemAddResult *tmp_add_result = item_add_result;
+    ItemAddResult tmp_add_result_storage;
+    Page *current_page = page;
+
     // if we don't have enough space in page then we need to allocate new page and place left data there
-    uint32_t bytes_written = item_add_result->write_status.bytes_written;
-    while (tmp_add_result.write_status.complete == false) {
+    while (bytes_written < payload.size) {
+        // If it is not the first iteration then the current_page should have been allocated
+        assert(current_page != NULL);
         Page *free_page = NULL;
-        res = page_manager_page_new(self, &free_page);
-        ABORT_IF_FAIL(res, "Failed to allocate one more page for large payload")
-
-        // !!! update current_free page. Forget about the old one.
-        res = page_manager_set_current_free_page(self, free_page);
-        ABORT_IF_FAIL(res, "Failed to update current free page")
+        if (page_can_fit_payload(current_page, payload.size) == false) {
+            // early allocate next page
+            Result res = page_manager_get_new_free_page(self, &free_page);
+            ABORT_IF_FAIL(res, "Failed to allocate one more page for large payload")
+            continue_on_page = free_page->page_header.page_id;
+        }
         ItemPayload payload_to_write = {
                 // TODO: can add pointers?
                 .data = payload.data + bytes_written,
-                .size = payload.size - bytes_written
+                .size = page_get_payload_available_space(current_page)
         };
-        res = page_add_item(free_page, payload_to_write, &tmp_add_result);
-        ABORT_IF_FAIL(res, "Failed to add other large part of item to page in memory")
-        bytes_written += tmp_add_result.write_status.bytes_written;
-        tmp_add_result.metadata.continues_on_page = free_page->page_header.page_id;
+        Result res = page_manager_add_part_of_item(self, current_page, payload_to_write, continue_on_page,
+                                                   tmp_add_result);
+        ABORT_IF_FAIL(res, "Failed to add item to page in memory")
 
-        // persist second part
-        res = write_page_on_disk(self, free_page);
-        ABORT_IF_FAIL(res, "Failed to write part of large payload to file")
-
-        // TODO: check
-        item_add_result->metadata.continues_on_page = free_page->page_header.page_id;
+        assert(tmp_add_result->write_status.bytes_written == payload_to_write.size);
+        bytes_written += tmp_add_result->write_status.bytes_written;
+        tmp_add_result = &tmp_add_result_storage;
+        assert(tmp_add_result != item_add_result);
+        current_page = free_page;
     }
-    // TODO: check while loop end condition
     return OK;
 }
 

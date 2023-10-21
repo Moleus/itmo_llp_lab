@@ -91,7 +91,7 @@ void page_destroy(Page *self);
 // payload size
 uint32_t page_get_payload_size(uint32_t page_size);
 
-Result page_add_item(Page *self, ItemPayload payload, ItemAddResult *item_add_result);
+Result page_add_item(Page *self, ItemPayload payload, page_index_t continues_on_page, ItemAddResult *item_add_result);
 
 Result page_delete_item(Page *self, Item *item);
 
