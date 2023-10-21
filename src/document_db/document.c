@@ -33,7 +33,7 @@ Result document_persist_new_node(Document *self, Node *node) {
     ASSERT_ARG_NOT_NULL(node)
 
     ItemPayload itemPayload = {
-            .data = &node->value,
+            .data = node,
             .size = sizeof(Node)
     };
 
@@ -58,12 +58,12 @@ Result document_add_root_node(Document *self, Node *root) {
     // if we have 0 root nodes, then create new root node
 
 
-    ItemIterator *items_it = page_manager_get_items(self->page_manager);
+    Item item;
+    ItemIterator *items_it = page_manager_get_items(self->page_manager, &item);
     while (item_iterator_has_next(items_it)) {
-        Item *item = NULL;
         Result get_item_res = item_iterator_next(items_it, &item);
         RETURN_IF_FAIL(get_item_res, "failed to add root node")
-        Node *node = item->payload.data;
+        Node *node = item.payload.data;
         if (is_root_node(node->id)) {
             ABORT_EXIT(INTERNAL_LIB_ERROR, "Root node already exists in document tree")
         }
@@ -74,12 +74,13 @@ Result document_add_root_node(Document *self, Node *root) {
 }
 
 Result document_add_child_node(Document *self, Node *current_node) {
-    ItemIterator *items_it = page_manager_get_items(self->page_manager);
+    Item item;
+    ItemIterator *items_it = page_manager_get_items(self->page_manager, &item);
     while (item_iterator_has_next(items_it)) {
-        Item *item = NULL;
         Result get_item_res = item_iterator_next(items_it, &item);
         RETURN_IF_FAIL(get_item_res, "failed to add node")
-        Node *tmp_node = item->payload.data;
+        // TODO: item.payload.data is invalid
+        Node *tmp_node = item.payload.data;
         if (node_id_eq(tmp_node->id, current_node->parent_id)) {
             // found parent node. Ok. Adding new
             return document_persist_new_node(self, current_node);
@@ -97,8 +98,7 @@ Result document_add_node(Document *self, CreateNodeRequest *request, Node *resul
     assert(self->init_done);
 
     // if parent node is null, then this is root node. Then check that we have only 1 root node in file
-    // if parent node is not null, then check that it exists in file
-    result->value = request->value;
+    /* if parent node is not null, then check that it exists in file */ result->value = request->value;
     result->parent_id = request->parent;
 
     if (is_null_node(request->parent)) {
@@ -115,12 +115,12 @@ Result document_delete_node(Document *self, DeleteNodeRequest *request) {
     assert(self->init_done);
 
     // if node contains children - raise error
-    ItemIterator *items_it = page_manager_get_items(self->page_manager);
+    Item item;
+    ItemIterator *items_it = page_manager_get_items(self->page_manager, &item);
     while (item_iterator_has_next(items_it)) {
-        Item *item = NULL;
         Result get_item_res = item_iterator_next(items_it, &item);
         RETURN_IF_FAIL(get_item_res, "failed to delete node")
-        Node *tmp_node = item->payload.data;
+        Node *tmp_node = item.payload.data;
 
         if (node_id_eq(tmp_node->parent_id, request->node->id)) {
             // We are trying to delete node with children
@@ -128,17 +128,16 @@ Result document_delete_node(Document *self, DeleteNodeRequest *request) {
         }
     }
     item_iterator_destroy(items_it);
-    items_it = page_manager_get_items(self->page_manager);
+    items_it = page_manager_get_items(self->page_manager, &item);
     // find our node
     while (item_iterator_has_next(items_it)) {
-        Item *item = NULL;
         Result get_item_res = item_iterator_next(items_it, &item);
         RETURN_IF_FAIL(get_item_res, "failed to delete node")
-        Node *tmp_node = item->payload.data;
+        Node *tmp_node = item.payload.data;
         if (node_id_eq(tmp_node->id, request->node->id)) {
             // We found our node
             Page *page = items_it->page_iterator->current_page;
-            return page_manager_delete_item(self->page_manager, page, item);
+            return page_manager_delete_item(self->page_manager, page, &item);
         }
     }
     item_iterator_destroy(items_it);
@@ -179,12 +178,12 @@ Result document_add_bulk_nodes(Document *self, CreateMultipleNodesRequest *reque
         return ERROR("Bulk add, empty request");
     }
 
-    ItemIterator *items_it = page_manager_get_items(self->page_manager);
+    Item item;
+    ItemIterator *items_it = page_manager_get_items(self->page_manager, &item);
     while (item_iterator_has_next(items_it)) {
-        Item *item = NULL;
         Result get_item_res = item_iterator_next(items_it, &item);
         RETURN_IF_FAIL(get_item_res, "failed to bulk add node")
-        Node *tmp_node = item->payload.data;
+        Node *tmp_node = item.payload.data;
         if (node_id_eq(tmp_node->id, request->parent)) {
             // found parent node. Ok. Adding new
             result->count = request->count;
@@ -212,14 +211,14 @@ Result document_get_all_children(Document *self, GetAllChildrenRequest *request,
     ASSERT_ARG_NOT_NULL(result)
     assert(self->init_done);
 
-    ItemIterator *items_it = page_manager_get_items(self->page_manager);
+    Item item;
+    ItemIterator *items_it = page_manager_get_items(self->page_manager, &item);
 
     size_t count = 0;
     while (item_iterator_has_next(items_it)) {
-        Item *item = NULL;
         Result get_item_res = item_iterator_next(items_it, &item);
         RETURN_IF_FAIL(get_item_res, "failed to bulk add node")
-        Node *tmp_node = item->payload.data;
+        Node *tmp_node = item.payload.data;
         if (node_id_eq(tmp_node->parent_id, request->node->id)) {
             count++;
         }
@@ -231,13 +230,12 @@ Result document_get_all_children(Document *self, GetAllChildrenRequest *request,
     }
     Node nodes[count];
     size_t i = 0;
-    items_it = page_manager_get_items(self->page_manager);
+    items_it = page_manager_get_items(self->page_manager, &item);
     while (item_iterator_has_next(items_it)) {
-        Item *item = NULL;
         Result get_item_res = item_iterator_next(items_it, &item);
         RETURN_IF_FAIL(get_item_res, "failed to bulk add node")
         // TODO: important: don't keep pointer. But user
-        Node *tmp_node = item->payload.data;
+        Node *tmp_node = item.payload.data;
         if (node_id_eq(tmp_node->parent_id, request->node->id)) {
             nodes[i++] = *tmp_node;
         }
