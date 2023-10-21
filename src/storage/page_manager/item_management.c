@@ -138,7 +138,7 @@ Result page_manager_get_item(PageManager *self, Page *page, item_index_t item_id
     uint32_t item_cum_size = 0;
     Item *tmp_read_item = result;
     tmp_read_item->index_in_page = item_id;
-    uint8_t buf_size = page_manager_get_page_size(self);
+    uint32_t buf_size = page_manager_get_page_size(self);
     uint8_t *tmp_buffer_for_data = malloc(buf_size);
 
     while (current_page_idx.id != NULL_PAGE_INDEX.id) {
