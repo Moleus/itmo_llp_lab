@@ -55,8 +55,9 @@ Result page_get_item(Page *self, item_index_t item_id, Item *item) {
     assert(self->page_header.next_item_id.id > item_id.id);
 
     // TODO: check that item pointer is assigned correctly
-    *item = create_item(self, (ItemPayload) {.data = get_item_data_addr(self,
-                                                                        metadata->data_offset), .size = metadata->size});
+    *item = create_item(self,
+                        (ItemPayload) {.data = get_item_data_addr(self, metadata->data_offset), .size = metadata->size},
+                        item_id);
 
     return OK;
 }
@@ -85,10 +86,11 @@ Result page_add_item_update_header(Page *self, ItemPayload payload, page_index_t
             .item_id = item_id,
             .data_offset = data_offset,
             .size = payload.size,
+            .is_deleted = false,
             .continues_on_page = continues_on_page
     };
 
-    bool is_complete = continues_on_page.id != NULL_PAGE_INDEX.id;
+    bool is_complete = continues_on_page.id == NULL_PAGE_INDEX.id;
     *item_add_result = (ItemAddResult) {
             .metadata_offset_in_page = self->page_header.free_space_start_offset,
             .metadata = metadata,
@@ -121,7 +123,7 @@ Result page_add_item(Page *self, ItemPayload payload, page_index_t continues_on_
 
     if (payload.size > page_get_payload_available_space(self)) {
         LOG_ERR("Add failed. Page: %d, Available space: %d, payload size: %d", self->page_header.page_id.id,
-                 page_get_payload_available_space(self), payload.size);
+                page_get_payload_available_space(self), payload.size);
         ABORT_EXIT(INTERNAL_LIB_ERROR, "Can't add item to this page. Not enough space for metadata")
     }
 
@@ -147,7 +149,7 @@ Result page_delete_item(Page *self, Item *item) {
     //TODO: test this and check data consistency. Theoretically, we don't care about payload, but headers.
     // also, we should do defragmentation once in a time
     if (item->index_in_page.id == self->page_header.next_item_id.id - 1) {
-        LOG_DEBUG("Page %d. Deleted last item %d", self->page_header.page_id.id, item->index_in_page.id);
+        LOG_DEBUG("Delete item - Page %d. Deleted last item %d", self->page_header.page_id.id, item->index_in_page.id);
         // increase free space by removing deleted data
         self->page_header.free_space_start_offset -= sizeof(ItemMetadata);
         self->page_header.free_space_end_offset += metadata->size;
@@ -159,7 +161,7 @@ Result page_delete_item(Page *self, Item *item) {
             // TODO: does it change actual data in memory?
             last_item_index = self->page_header.next_item_id.id--;
         }
-        LOG_DEBUG("Page %d. Updated next_item_id to %d after deletion", self->page_header.page_id.id,
+        LOG_DEBUG("Delete item - Page %d. Updated next_item_id to %d after deletion", self->page_header.page_id.id,
                   self->page_header.next_item_id.id);
         // TODO: check if we can assign null item?
         //        *item = NULL_ITEM;

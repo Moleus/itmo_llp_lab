@@ -84,12 +84,20 @@ bool item_iterator_has_next(ItemIterator *self) {
     // Если на этой странице больше нет элементов - надо проверить на следующей
     // нужно загрузить следующую страницу и проверить, что кол-во элементов в ней больше 0
     // надо проверять следующие страницы, пока не найдем страницу с элементами или кол-во страниц не закончится
+    // Также, нужно проверить, что элемент - это НЕ продолжение предыдущего элемента
     LOG_DEBUG("ItemIterator - checking next page %d", self->page_iterator->next_page_id.id);
     while (page_iterator_has_next(self->page_iterator)) {
         cur_page = NULL;
         Result res = page_iterator_next(self->page_iterator, &cur_page);
         ABORT_IF_FAIL(res, "Failed to get next page")
+        ItemMetadata *cur_item_metadata = get_metadata(cur_page, self->current_item_index);
         if (cur_page->page_header.items_count > 0) {
+            if (cur_page->page_header.items_count == 1 && cur_item_metadata->continues_on_page.id == page_get_id(cur_page).id) {
+                // Если на странице только 1 элемент и он продолжается на следующей странице - то это не отдельный элемент
+                LOG_DEBUG("ItemIterator - Page %d has only one element and it's continuation of %d", page_get_id(cur_page).id,
+                          self->current_item_index.id);
+                continue;
+            }
             LOG_DEBUG("ItemIterator - found item on page %d", cur_page->page_header.page_id.id);
             return true;
         }
@@ -114,7 +122,7 @@ Result item_iterator_next(ItemIterator *self, Item **result) {
         ABORT_EXIT(INTERNAL_LIB_ERROR, "It should not be possible because has_next sets current_page or returns false")
     }
 
-    Result res = page_get_item(cur_page, next_item(old_item_index), *result);
+    Result res = page_manager_get_item(self->page_iterator->page_manager, cur_page, next_item(old_item_index), *result);
     RETURN_IF_FAIL(res, "Failed to get item from page")
     self->current_item = *result;
     return OK;

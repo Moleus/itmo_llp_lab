@@ -126,15 +126,19 @@ TEST(test_page_manager, test_delete_large_item) {
             .data = data
     };
     ItemAddResult add_result;
-    uint32_t expected_bytes_written = PAGE_SIZE - sizeof(PageHeader) - sizeof(ItemMetadata);
     Page *first_page = page_manager_get_current_free_page(pm);
     Result res = page_manager_put_item(pm, first_page, payload, &add_result);
     ASSERT_EQ(res.status, RES_OK);
 
     Item item;
-    res = page_get_item(pm->current_free_page, add_result.metadata.item_id, &item);
+    res = page_manager_get_item(pm, first_page, add_result.metadata.item_id, &item);
     ASSERT_EQ(res.status, RES_OK);
-    res = page_manager_delete_item(pm, pm->current_free_page, &item);
+    ASSERT_EQ(item.payload.size, payload_size);
+    // assert data content is equal
+    for (int i = 0; i < payload_size; i++) {
+        ASSERT_EQ(((uint8_t *) item.payload.data)[i], data[i]);
+    }
+    res = page_manager_delete_item(pm, first_page, &item);
     ASSERT_EQ(res.status, RES_OK);
     ASSERT_EQ(pm->current_free_page->page_header.items_count, 0);
     ASSERT_EQ(first_page->page_header.items_count, 0);

@@ -50,16 +50,15 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
     ASSERT_ARG_NOT_NULL(payload.data);
     assert(payload.size > 0);
 
-    page_index_t continue_on_page = NULL_PAGE_INDEX;
     uint32_t bytes_written = 0;
-    ItemAddResult *tmp_add_result = item_add_result;
-    ItemAddResult tmp_add_result_storage;
+    ItemAddResult tmp_add_result;
     Page *current_page = page;
 
     // if we don't have enough space in page then we need to allocate new page and place left data there
     while (bytes_written < payload.size) {
         // If it is not the first iteration then the current_page should have been allocated
         assert(current_page != NULL);
+        page_index_t continue_on_page = NULL_PAGE_INDEX;
         Page *free_page = NULL;
         uint32_t payload_size = payload.size - bytes_written;
         if (page_can_fit_payload(current_page, payload_size) == false) {
@@ -75,16 +74,18 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
                 .size = payload_size
         };
         Result res = page_manager_add_part_of_item(self, current_page, payload_to_write, continue_on_page,
-                                                   tmp_add_result);
+                                                   &tmp_add_result);
         ABORT_IF_FAIL(res, "Failed to add item to page in memory")
 
-        assert(tmp_add_result->write_status.bytes_written == payload_to_write.size);
-        bytes_written += tmp_add_result->write_status.bytes_written;
-        tmp_add_result = &tmp_add_result_storage;
-        assert(tmp_add_result != item_add_result);
+        if (page == current_page) {
+            // first page. Save result
+            *item_add_result = tmp_add_result;
+        }
+        assert(tmp_add_result.write_status.bytes_written == payload_to_write.size);
+        bytes_written += tmp_add_result.write_status.bytes_written;
         current_page = free_page;
     }
-    item_add_result->write_status = tmp_add_result->write_status;
+    item_add_result->write_status = tmp_add_result.write_status; // final result must be complete
     item_add_result->write_status.bytes_written = bytes_written;
 
     assert(bytes_written == payload.size);
@@ -104,10 +105,12 @@ Result page_manager_delete_item(PageManager *self, Page *page, Item *item) {
     while (current_page_idx.id != NULL_PAGE_INDEX.id) {
         if (current_page_idx.id != page_get_id(page).id) {
             // is next page
+            current_page = NULL;
             Result res = page_manager_read_page(self, current_page_idx, &current_page);
-            ABORT_IF_FAIL(res, "Failed to get page from disk")
+            ABORT_IF_FAIL(res, "Delete item - Failed to get page from disk")
             // continuation of item should always be the first item in page;
-            item_to_delete->index_in_page.id = 0;
+            res = page_manager_get_item(self, current_page, item_id(0), item_to_delete);
+            ABORT_IF_FAIL(res, "Delete item - Failed to read item from page in memory")
         }
         // persist in memory
         Result res = page_delete_item(current_page, item_to_delete);
@@ -116,10 +119,52 @@ Result page_manager_delete_item(PageManager *self, Page *page, Item *item) {
         res = write_page_on_disk(self, current_page);
         ABORT_IF_FAIL(res, "Failed to write page on disk")
 
-        LOG_INFO("Page %d. Item %d deleted. Items on page: %d", current_page->page_header.page_id.id, item->index_in_page.id,
-                 item->index_in_page.id, page->page_header.items_count);
+        LOG_INFO("Delete item - Page %d. Item %d deleted. Items on page: %d", current_page->page_header.page_id.id,
+                 item_to_delete->index_in_page.id, page->page_header.items_count);
         // continue
-        current_page_idx = page_get_item_continuation(current_page, item);
+        current_page_idx = page_get_item_continuation(current_page, item_to_delete);
     }
+    return OK;
+}
+
+Result page_manager_get_item(PageManager *self, Page *page, item_index_t item_id, Item *result) {
+    ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_NOT_NULL(page)
+    ASSERT_ARG_NOT_NULL(result)
+
+    Page *current_page = page;
+    page_index_t current_page_idx = page_get_id(current_page);
+    uint32_t item_cum_size = 0;
+    Item *tmp_read_item = result;
+    tmp_read_item->index_in_page = item_id;
+    uint8_t buf_size = page_manager_get_page_size(self);
+    uint8_t *tmp_buffer_for_data = malloc(buf_size);
+
+    while (current_page_idx.id != NULL_PAGE_INDEX.id) {
+        if (current_page_idx.id != page_get_id(page).id) {
+            // is next page
+            current_page = NULL;
+            Result res = page_manager_read_page(self, current_page_idx, &current_page);
+            ABORT_IF_FAIL(res, "Failed to get page from disk")
+            // continuation of item should always be the first item in page;
+            tmp_read_item->index_in_page.id = 0;
+        }
+        // persist in memory
+        Result res = page_get_item(current_page, tmp_read_item->index_in_page, tmp_read_item);
+        ABORT_IF_FAIL(res, "Failed to read item from page in memory")
+        // TODO: sum item_cum_size and place memory in result
+        item_cum_size += tmp_read_item->payload.size;
+        if (item_cum_size > buf_size) {
+            tmp_buffer_for_data = realloc(tmp_buffer_for_data, item_cum_size);
+            ASSERT_NOT_NULL(tmp_buffer_for_data, FAILED_TO_ALLOCATE_MEMORY);
+        }
+        memcpy(tmp_buffer_for_data + item_cum_size - tmp_read_item->payload.size, tmp_read_item->payload.data,
+               tmp_read_item->payload.size);
+
+        // continue
+        current_page_idx = page_get_item_continuation(current_page, tmp_read_item);
+    }
+    result->payload.data = tmp_buffer_for_data;
+    result->payload.size = item_cum_size;
     return OK;
 }

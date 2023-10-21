@@ -107,6 +107,6 @@ ItemMetadata *get_metadata(const Page *self, item_index_t item_id);
 
 uint8_t *get_item_data_addr(const Page *self, uint32_t data_offset);
 
-Item create_item(const Page *self, ItemPayload payload);
+Item create_item(const Page *self, ItemPayload payload, item_index_t item_id);
 
 page_index_t page_get_id(const Page *self);
