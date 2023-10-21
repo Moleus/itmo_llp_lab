@@ -8,7 +8,6 @@ typedef struct {
     Node *root_node;
     PageManager *page_manager;
     bool init_done;
-    uint
 } Document;
 
 typedef struct {
