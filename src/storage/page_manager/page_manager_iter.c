@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "private/storage/page_manager.h"
 
 //TODO: think if it's correct to include private header
@@ -11,10 +12,9 @@ PageIterator *page_iterator_new(PageManager *self) {
     ASSERT_NOT_NULL(result, FAILED_TO_ALLOCATE_MEMORY)
     // начинаем с первой страницы
     Page *page = NULL;
-    if (page_manager_get_pages_count(self) > 0) {
-        page_manager_read_page(self, page_id(0), &page);
-    }
-    *result = (PageIterator) {.page_manager = self, .next_page_id = 0,
+    assert(page_manager_get_pages_count(self) > 0);
+    page_manager_read_page(self, page_id(0), &page);
+    *result = (PageIterator) {.page_manager = self, .next_page_id = 1,
             // TODO: check page for null while iterating
             .current_page = page};
     return result;
