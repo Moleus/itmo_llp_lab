@@ -3,10 +3,7 @@
 // main
 unsigned char log_level = DEBUG;
 
-int main(int argc, char const *argv[])
-{
-    // create document.
-
+int process_document() {// create document.
     CreateNodeRequest string_req = {
         .parent = NULL_NODE_ID,
         .value = (NodeValue) {
@@ -48,10 +45,19 @@ int main(int argc, char const *argv[])
         return 1;
     }
     // remove 1 node
-    LOG_INFO("string node id: %d, data: %.*s", string_node.id, string_node.value.string_value.length, string_node.value.string_value.value);
+    LOG_INFO("string node id: %d, data: %.*s", string_node.id, string_node.value.string_value.length,
+             string_node.value.string_value.value);
     document_delete_node(doc, &(DeleteNodeRequest) {.node = &double_node});
     LOG_INFO("double node id: %d, data: %f", double_node.id, double_node.value.double_value);
 
     document_destroy(doc);
     return 0;
+}
+
+int main(int argc, char const *argv[])
+{
+    // 1000 times
+    for (int i = 0; i < 1; ++i) {
+        process_document();
+    }
 }
