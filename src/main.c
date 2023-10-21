@@ -49,7 +49,7 @@ int main(int argc, char const *argv[])
     }
     // remove 1 node
     LOG_INFO("string node id: %d, data: %.*s", string_node.id, string_node.value.string_value.length, string_node.value.string_value.value);
-    document_delete_node(doc, &(DeleteNodeRequest) {.node = &string_node});
+    document_delete_node(doc, &(DeleteNodeRequest) {.node = &double_node});
     LOG_INFO("double node id: %d, data: %f", double_node.id, double_node.value.double_value);
 
     document_destroy(doc);
