@@ -118,8 +118,9 @@ uint8_t *item_iterator_allocate_payload(ItemIterator *self, size_t size) {
     struct AllocatedPayload *allocated_payload = calloc(1, sizeof(struct AllocatedPayload));
     ASSERT_NOT_NULL(allocated_payload, FAILED_TO_ALLOCATE_MEMORY)
 
-    self->allocated_payloads->payload = payload;
-    self->allocated_payloads->next = allocated_payload;
+    allocated_payload->payload = payload;
+    allocated_payload->next = self->allocated_payloads;
+    self->allocated_payloads = allocated_payload;
     self->allocated_payloads_count++;
 
     return payload;
