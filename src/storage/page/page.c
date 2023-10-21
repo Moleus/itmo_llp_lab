@@ -55,9 +55,9 @@ Result page_get_item(Page *self, item_index_t item_id, Item *item) {
     assert(self->page_header.next_item_id.id > item_id.id);
 
     // TODO: check that item pointer is assigned correctly
-    *item = create_item(self,
-                        (ItemPayload) {.data = get_item_data_addr(self, metadata->data_offset), .size = metadata->size},
-                        item_id);
+    *item = create_item(
+            (ItemPayload) {.size = metadata->size, .data = get_item_data_addr(self, metadata->data_offset)},
+            item_id);
 
     return OK;
 }

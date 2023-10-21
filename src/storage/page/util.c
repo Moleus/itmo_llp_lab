@@ -36,7 +36,7 @@ uint8_t *get_item_data_addr(const Page *self, uint32_t data_offset) {
     return ((uint8_t *) self) + data_offset;
 }
 
-Item create_item(const Page *self, ItemPayload payload, item_index_t item_id) {
+Item create_item(ItemPayload payload, item_index_t item_id) {
     return (Item) {.is_deleted = false, .index_in_page = item_id, .payload = payload};
 }
 

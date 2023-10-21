@@ -36,18 +36,18 @@ bool page_iterator_has_next(PageIterator *self);
 
 typedef struct ItemIterator ItemIterator;
 
-ItemIterator *item_iterator_new(PageManager *page_manager);
+ItemIterator *item_iterator_new(PageManager *page_manager, Item *reusable_memory);
 
 void item_iterator_destroy(ItemIterator *self);
 
-Result item_iterator_next(ItemIterator *self, Item **result);
+Result item_iterator_next(ItemIterator *self, Item *result);
 
 bool item_iterator_has_next(ItemIterator *self);
 
 // TODO: can we make this one private?
 PageIterator *page_manager_get_pages(PageManager *self);
 
-ItemIterator *page_manager_get_items(PageManager *self);
+ItemIterator *page_manager_get_items(PageManager *self, Item *reusable_mem);
 
 Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload, ItemAddResult *item_add_result);
 

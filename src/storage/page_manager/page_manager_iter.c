@@ -48,14 +48,15 @@ Result page_iterator_next(PageIterator *self, Page **result) {
 }
 
 // Item Iterator
-ItemIterator *item_iterator_new(PageManager *page_manager) {
+ItemIterator *item_iterator_new(PageManager *page_manager, Item *reusable_memory) {
     ASSERT_ARG_NOT_NULL(page_manager)
 
     ItemIterator *item_it = malloc(sizeof(ItemIterator));
     ASSERT_NOT_NULL(item_it, FAILED_TO_ALLOCATE_MEMORY)
 
     PageIterator *page_iterator = page_manager_get_pages(page_manager);
-    *item_it = (ItemIterator) {.page_iterator = page_iterator, .current_item = NULL, .current_item_index = -1};
+    *reusable_memory = (Item) {.is_deleted = true, .index_in_page.id = -1, .payload = {.data = NULL, .size = 0}};
+    *item_it = (ItemIterator) {.page_iterator = page_iterator, .current_item = reusable_memory, .current_item_index = -1};
     return item_it;
 }
 
@@ -105,9 +106,9 @@ bool item_iterator_has_next(ItemIterator *self) {
     return false;
 }
 
-Result item_iterator_next(ItemIterator *self, Item **result) {
+Result item_iterator_next(ItemIterator *self, Item *result) {
     ASSERT_ARG_NOT_NULL(self)
-    ASSERT_ARG_IS_NULL(*result)
+    ASSERT_ARG_NOT_NULL(result)
 
     if (!item_iterator_has_next(self)) {
         ABORT_EXIT(INTERNAL_LIB_ERROR, "No more items in iterator")
@@ -122,9 +123,8 @@ Result item_iterator_next(ItemIterator *self, Item **result) {
         ABORT_EXIT(INTERNAL_LIB_ERROR, "It should not be possible because has_next sets current_page or returns false")
     }
 
-    Result res = page_manager_get_item(self->page_iterator->page_manager, cur_page, next_item(old_item_index), *result);
+    Result res = page_manager_get_item(self->page_iterator->page_manager, cur_page, next_item(old_item_index), result);
     RETURN_IF_FAIL(res, "Failed to get item from page")
-    self->current_item = *result;
     return OK;
 }
 
@@ -136,8 +136,9 @@ PageIterator *page_manager_get_pages(PageManager *self) {
     return page_iterator_new(self);
 }
 
-ItemIterator *page_manager_get_items(PageManager *self) {
+ItemIterator *page_manager_get_items(PageManager *self, Item *reusable_mem) {
     ASSERT_ARG_NOT_NULL(self)
+    ASSERT_ARG_NOT_NULL(reusable_mem)
 
-    return item_iterator_new(self);
+    return item_iterator_new(self, reusable_mem);
 }
