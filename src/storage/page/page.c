@@ -33,18 +33,6 @@ void page_destroy(Page *self) {
     free(self);
 }
 
-static ItemMetadata *get_metadata(const Page *self, item_index_t item_id) {
-    return (ItemMetadata *) (self->page_payload + sizeof(ItemMetadata) * item_id.id);
-}
-
-static uint8_t *get_item_data_addr(const Page *self, uint32_t data_offset) {
-    return ((uint8_t *) self) + data_offset;
-}
-
-static Item create_item(const Page *self, ItemPayload payload) {
-    return (Item) {.is_deleted = false, .index_in_page = self->page_header.next_item_id, .payload = payload};
-}
-
 // TODO: change public signature so user won't know anything about id and use just pointer
 // maybe we don't even need this one
 Result page_get_item(Page *self, item_index_t item_id, Item *item) {
@@ -147,6 +135,7 @@ Result page_delete_item(Page *self, Item *item) {
     ASSERT_ARG_NOT_NULL(item)
     assert(!item->is_deleted);
     assert(item->index_in_page.id < self->page_header.next_item_id.id);
+    assert(self->page_header.items_count > 0);
 
     LOG_DEBUG("Page: %d. Deleting item with id %d", self->page_header.page_id.id, item->index_in_page.id);
     ItemMetadata *metadata = get_metadata(self, item->index_in_page);

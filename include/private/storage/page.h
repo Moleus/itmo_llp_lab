@@ -100,3 +100,13 @@ Result page_get_item(Page *self, item_index_t item_id, Item *item);
 uint32_t page_get_free_space_left(Page *self);
 
 uint32_t page_get_payload_available_space(Page *self);
+
+page_index_t page_get_item_continuation(Page *self, Item *item);
+
+ItemMetadata *get_metadata(const Page *self, item_index_t item_id);
+
+uint8_t *get_item_data_addr(const Page *self, uint32_t data_offset);
+
+Item create_item(const Page *self, ItemPayload payload);
+
+page_index_t page_get_id(const Page *self);

@@ -110,3 +110,32 @@ TEST(test_page_manager, test_add_large_item) {
     ASSERT_EQ(second_page->page_header.free_space_start_offset, sizeof(PageHeader) + sizeof(ItemMetadata));
     ASSERT_EQ(second_page->page_header.free_space_end_offset, PAGE_SIZE - expected_bytes_on_second_page);
 }
+
+// delete large item which is larger than page size. Check that it is deleted from page 2
+TEST(test_page_manager, test_delete_large_item) {
+    PageManager *pm = page_manager_new();
+    remove(FILE_PATH);
+    page_manager_init(pm, FILE_PATH, PAGE_SIZE, SIGNATURE);
+
+    const uint32_t payload_size = PAGE_SIZE;
+    uint8_t data[payload_size] = {0};
+    memset(data, 0xFF, payload_size);
+
+    ItemPayload payload = {
+            .size = payload_size,
+            .data = data
+    };
+    ItemAddResult add_result;
+    uint32_t expected_bytes_written = PAGE_SIZE - sizeof(PageHeader) - sizeof(ItemMetadata);
+    Page *first_page = page_manager_get_current_free_page(pm);
+    Result res = page_manager_put_item(pm, first_page, payload, &add_result);
+    ASSERT_EQ(res.status, RES_OK);
+
+    Item item;
+    res = page_get_item(pm->current_free_page, add_result.metadata.item_id, &item);
+    ASSERT_EQ(res.status, RES_OK);
+    res = page_manager_delete_item(pm, pm->current_free_page, &item);
+    ASSERT_EQ(res.status, RES_OK);
+    ASSERT_EQ(pm->current_free_page->page_header.items_count, 0);
+    ASSERT_EQ(first_page->page_header.items_count, 0);
+}

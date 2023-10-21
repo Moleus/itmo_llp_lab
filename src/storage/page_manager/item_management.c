@@ -97,18 +97,29 @@ Result page_manager_delete_item(PageManager *self, Page *page, Item *item) {
     ASSERT_ARG_NOT_NULL(page)
     ASSERT_ARG_NOT_NULL(item)
 
+    Page *current_page = page;
+    page_index_t current_page_idx = page_get_id(current_page);
+    Item *item_to_delete = item;
 
-    // persist in memory
-    Result res = page_delete_item(page, item);
-    RETURN_IF_FAIL(res, "Failed to delete item from page in memory")
+    while (current_page_idx.id != NULL_PAGE_INDEX.id) {
+        if (current_page_idx.id != page_get_id(page).id) {
+            // is next page
+            Result res = page_manager_read_page(self, current_page_idx, &current_page);
+            ABORT_IF_FAIL(res, "Failed to get page from disk")
+            // continuation of item should always be the first item in page;
+            item_to_delete->index_in_page.id = 0;
+        }
+        // persist in memory
+        Result res = page_delete_item(current_page, item_to_delete);
+        ABORT_IF_FAIL(res, "Failed to delete item from page in memory")
+        // persist on disk
+        res = write_page_on_disk(self, current_page);
+        ABORT_IF_FAIL(res, "Failed to write page on disk")
 
-    // we don't need to write deleted data. We only flush header
-    size_t header_offset_in_file = page_manager_get_page_offset(self, page->page_header.page_id);
-    res = file_manager_write(self->file_manager, header_offset_in_file, sizeof(PageHeader), &page->page_header);
-    RETURN_IF_FAIL(res, "Failed to write page header to file")
-
-    LOG_INFO("Page %d. Item %d deleted. Items on page: %d", page->page_header.page_id.id, item->index_in_page.id,
-             item->index_in_page.id, page->page_header.items_count);
-    // TODO: implement defragmentation
+        LOG_INFO("Page %d. Item %d deleted. Items on page: %d", current_page->page_header.page_id.id, item->index_in_page.id,
+                 item->index_in_page.id, page->page_header.items_count);
+        // continue
+        current_page_idx = page_get_item_continuation(current_page, item);
+    }
     return OK;
 }
