@@ -202,13 +202,16 @@ page_manager_get_item(PageManager *self, Page *page, item_index_t item_id, uint8
         ABORT_IF_FAIL(res, "Failed to read item from page in memory")
         // TODO: sum item_cum_size and place memory in result
         uint32_t tmp_payload_size = tmp_read_item->payload.size;
-        LOG_DEBUG("Copying Size: %d. tmp_item_addr %p. Item Id %d. Cum size: %d, payload size: %d",
-                  tmp_read_item->payload.size, tmp_read_item->payload.data, tmp_read_item->index_in_page.id,
-                  item_cum_size, tmp_read_item->payload.size);
-        memcpy(payload_buffer + item_cum_size, tmp_read_item->payload.data,
-               tmp_read_item->payload.size);
-        item_cum_size += tmp_payload_size;
-        LOG_DEBUG("Item ID after copy: %d", tmp_read_item->index_in_page.id);
+        void *data = tmp_read_item->payload.data;
+        LOG_DEBUG("Copying Size: %d. tmp_item_addr %p. Item Id %d. Cum size: %d",
+                  tmp_payload_size, data, tmp_read_item->index_in_page.id,
+                  item_cum_size);
+
+        memcpy((void *) (payload_buffer + item_cum_size), data, tmp_payload_size);
+
+        item_cum_size = item_cum_size + tmp_payload_size;
+        LOG_DEBUG("Item ID after copy: %d, item_payload_size: %d", tmp_read_item->index_in_page.id,
+                  tmp_read_item->payload.size);
         // continue
         current_page_idx = page_get_item_continuation(current_page, tmp_read_item);
     }
