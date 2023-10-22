@@ -71,7 +71,7 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
         }
         ItemPayload payload_to_write = {
                 // TODO: can add pointers?
-                .data = (void*) ((uint8_t *)payload.data + bytes_written),
+                .data = (void *) ((uint8_t *) payload.data + bytes_written),
                 .size = payload_size
         };
         Result res = page_manager_add_part_of_item(self, current_page, payload_to_write, continue_on_page,
@@ -168,7 +168,8 @@ Result page_manager_calculate_large_item_size(PageManager *self, Page *page, ite
     return OK;
 }
 
-Result page_manager_get_item(PageManager *self, Page *page, item_index_t item_id, uint8_t *payload_buffer, Item *result) {
+Result
+page_manager_get_item(PageManager *self, Page *page, item_index_t item_id, uint8_t *payload_buffer, Item *result) {
     ASSERT_ARG_NOT_NULL(self)
     ASSERT_ARG_NOT_NULL(page)
     ASSERT_ARG_NOT_NULL(payload_buffer)
@@ -201,15 +202,18 @@ Result page_manager_get_item(PageManager *self, Page *page, item_index_t item_id
         ABORT_IF_FAIL(res, "Failed to read item from page in memory")
         // TODO: sum item_cum_size and place memory in result
         item_cum_size += tmp_read_item->payload.size;
-        LOG_DEBUG("Copying to address %p. Size: %d. tmp_item_addr %p", payload_buffer + item_cum_size - tmp_read_item->payload.size,
-                  tmp_read_item->payload.size, tmp_read_item->payload.data);
+        LOG_DEBUG("Copying to address %p. Size: %d. tmp_item_addr %p. Item Id %d",
+                  payload_buffer + item_cum_size - tmp_read_item->payload.size,
+                  tmp_read_item->payload.size, tmp_read_item->payload.data, tmp_read_item->index_in_page.id);
         memcpy(payload_buffer + item_cum_size - tmp_read_item->payload.size, tmp_read_item->payload.data,
                tmp_read_item->payload.size);
+        LOG_DEBUG("Item ID after copy: %d", tmp_read_item->index_in_page.id);
         // continue
         current_page_idx = page_get_item_continuation(current_page, tmp_read_item);
     }
     result->payload.data = payload_buffer;
     result->payload.size = item_cum_size;
-    LOG_DEBUG("Get item finished. Page: %d. Item: %d. Size: %d", page->page_header.page_id.id, item_id.id, item_cum_size);
+    LOG_DEBUG("Get item finished. Page: %d. Item: %d. Size: %d", page->page_header.page_id.id, item_id.id,
+              item_cum_size);
     return OK;
 }
