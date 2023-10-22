@@ -1,4 +1,5 @@
 #include "private/storage/file_manager.h"
+#include "private/storage/file.h"
 #include "private/storage/page.h"
 
 FileManager *file_manager_new() {
@@ -29,7 +30,12 @@ Result file_manager_init(FileManager *self, const char *filename, FileHeaderCons
     RETURN_IF_FAIL(res, "Failed to open file")
 
     LOG_INFO("Init file. new: %b. size: %d. Writing header", self->file->is_new, self->file->size);
-    if (self->file->is_new || self->file->size == 0) {
+    if (self->file->size == 1) {
+        uint8_t data = 0;
+        file_read(self->file, &data, 0, 1);
+        LOG_INFO("Small file contents: %hhu", data);
+    }
+    if (self->file->is_new || self->file->size < sizeof(FileHeader)) {
         self->header.constants = header_for_new_file;
         self->header.dynamic.file_size = sizeof(FileHeader);
         self->header.dynamic.current_free_page = 0;
