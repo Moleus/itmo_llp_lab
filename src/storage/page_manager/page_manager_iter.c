@@ -4,7 +4,6 @@
 //TODO: think if it's correct to include private header
 #include "private/storage/page.h"
 
-// Page Iterator
 PageIterator *page_iterator_new(PageManager *self) {
     ASSERT_ARG_NOT_NULL(self)
 
@@ -15,13 +14,13 @@ PageIterator *page_iterator_new(PageManager *self) {
     assert(page_manager_get_pages_count(self) > 0);
     page_manager_read_page(self, page_id(0), &page);
     *result = (PageIterator) {.page_manager = self, .next_page_id = 1,
-            // TODO: check page for null while iterating
             .current_page = page};
     return result;
 }
 
 void page_iterator_destroy(PageIterator *self) {
     ASSERT_ARG_NOT_NULL(self)
+    page_manager_free_pages(self->page_manager);
     free(self);
 }
 
@@ -134,14 +133,13 @@ void item_iterator_free_payloads(ItemIterator *self) {
     while (allocated_payload != NULL) {
         i++;
         struct AllocatedPayload *next = allocated_payload->next;
-        if (allocated_payload->payload != NULL) {
-            free(allocated_payload->payload);
-        }
+        free(allocated_payload->payload);
         free(allocated_payload);
         allocated_payload = next;
     }
     LOG_DEBUG("ItemIterator - freed %d payloads. Count was %d", i, self->allocated_payloads_count);
     self->allocated_payloads_count = 0;
+    self->allocated_payloads = NULL;
 }
 
 Result item_iterator_next(ItemIterator *self, Item *result) {

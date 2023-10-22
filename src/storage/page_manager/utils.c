@@ -22,6 +22,11 @@ page_index_t page_manager_get_last_page_id(PageManager *self) {
 Page *page_manager_get_current_free_page(PageManager *self) {
     ASSERT_ARG_NOT_NULL(self)
 
+    if (self->current_free_page == NULL) {
+        page_index_t free_page_id = page_id(self->file_manager->header.dynamic.current_free_page);
+        Result res = page_manager_read_page(self, free_page_id, &self->current_free_page);
+        ABORT_IF_FAIL(res, "Failed to read current free page from disk");
+    }
     return self->current_free_page;
 }
 

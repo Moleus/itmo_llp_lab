@@ -58,3 +58,5 @@ page_manager_get_item(PageManager *self, Page *page, item_index_t item_id, uint8
 
 // free page management
 Result page_manager_get_page_for_data(PageManager *self, ItemPayload data, Page **result);
+
+Result page_manager_write_page_on_disk(PageManager *self, Page *page);

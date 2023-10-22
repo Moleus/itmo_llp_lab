@@ -10,8 +10,8 @@ PageManager *page_manager_new() {
     PageManager *pm = malloc(sizeof(PageManager));
     ASSERT_NOT_NULL(pm, FAILED_TO_ALLOCATE_MEMORY)
     pm->file_manager = file_manager_new();
-    pm->meta_pages = NULL;
-    pm->pages_in_memory = 0;
+    pm->allocated_pages = NULL;
+    pm->allocated_pages_count = 0;
     pm->current_free_page = NULL;
     return pm;
 }
@@ -48,39 +48,8 @@ void page_manager_destroy(PageManager *self) {
     ASSERT_ARG_NOT_NULL(self)
 
     file_manager_destroy(self->file_manager);
-    // TODO: remove all pages from memory
-    for (size_t i = 0; i < self->pages_in_memory; i++) {
-        AllocatedPage *next_page = self->meta_pages->next;
-        page_destroy(self->meta_pages->rawPage);
-        free(self->meta_pages);
-        self->meta_pages = next_page;
-    }
-    // TODO: check that we don't do double-free
-     free(self);
-}
-
-// call only when reading new page from disk or creating
-void page_manager_add_page_to_cache(PageManager *self, Page* page) {
-    // it's first page
-    if (self->meta_pages == NULL) {
-        self->meta_pages = malloc(sizeof(AllocatedPage));
-        self->meta_pages->rawPage = page;
-    } else {
-        LOG_DEBUG("Adding page %d to pages list. Previous was %d", page->page_header.page_id.id, self->meta_pages->rawPage->page_header.page_id.id);
-        self->meta_pages->next = malloc(sizeof(AllocatedPage));
-        self->meta_pages->next->rawPage = page;
-    }
-    self->pages_in_memory++;
-}
-
-Result page_manager_get_first_page_or_create(PageManager *self, Page **result) {
-    ASSERT_ARG_NOT_NULL(self)
-    ASSERT_ARG_IS_NULL(*result)
-
-    if (page_manager_get_pages_count(self) == 0) {
-        return page_manager_page_new(self, result);
-    }
-    return page_manager_read_page(self, page_id(0), result);
+    page_manager_free_pages(self);
+    free(self);
 }
 
 /*
@@ -91,31 +60,16 @@ Result page_manager_page_new(PageManager *self, Page **page) {
     ASSERT_ARG_IS_NULL(*page)
 
     page_index_t next_id = next_page(page_manager_get_last_page_id(self));
-    *page = page_new(next_id, page_manager_get_page_size(self));
+    *page = page_manager_allocate_page(self, next_id);
     uint32_t old_pages_count = page_manager_get_pages_count(self);
     Result res = page_manager_set_pages_count(self, ++old_pages_count);
     LOG_DEBUG("New page %d, total pages count: %d", next_id.id, page_manager_get_pages_count(self));
     RETURN_IF_FAIL(res, "Failed increment pages count")
     // write to file
-    uint32_t page_size = page_manager_get_page_size(self);
-    uint32_t page_offset_in_file = page_manager_get_page_offset(self, (*page)->page_header.page_id);
-    Result page_write_res = file_manager_write(self->file_manager, page_offset_in_file, page_size,
-                                               *page);
-    // TODO: free page if fail
-    RETURN_IF_FAIL(page_write_res, "Failed to write new page to file")
-    LOG_DEBUG("Written page %d bytes %d to offset %08X", next_id.id, page_size, page_offset_in_file);
-
-    page_manager_add_page_to_cache(self, *page);
+    res = page_manager_write_page_on_disk(self, *page);
+    RETURN_IF_FAIL(res, "Failed to write new page to file")
 
     return OK;
-}
-
-// TODO: why do we need this method?
-void page_manager_page_destroy(PageManager *self, Page *page) {
-    ASSERT_ARG_NOT_NULL(self)
-    ASSERT_ARG_NOT_NULL(page)
-
-    return page_destroy(page);
 }
 
 Result page_manager_flush_page(PageManager *self, Page *page) {
@@ -135,10 +89,10 @@ Result page_manager_get_page_from_ram(PageManager *self, page_index_t page_id, P
     ASSERT_ARG_IS_NULL(*result)
 
     // for each page in pages
-    AllocatedPage *current_page = self->meta_pages;
-    for (size_t i = 0; i < self->pages_in_memory; i++) {
+    AllocatedPage *current_page = self->allocated_pages;
+    for (size_t i = 0; i < self->allocated_pages_count; i++) {
         if (current_page == NULL) {
-            LOG_ERR("Page from ram %d is null. Pages in memory: %d", i, self->pages_in_memory);
+            LOG_ERR("Page from ram %d is null. Pages in memory: %d", i, self->allocated_pages_count);
             ABORT_EXIT(INTERNAL_LIB_ERROR, "Page in memory is null")
         }
         if (current_page->rawPage->page_header.page_id.id == page_id.id) {

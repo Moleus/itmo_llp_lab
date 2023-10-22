@@ -7,7 +7,6 @@
  * Allocates new page. Assigns id
  */
 Page *page_new(page_index_t page_id, uint32_t page_size) {
-    // TODO: rethink payload allocation
     Page *result = calloc(1, page_size);
     ASSERT_NOT_NULL(result, FAILED_TO_ALLOCATE_MEMORY)
 
@@ -31,6 +30,7 @@ void page_destroy(Page *self) {
 
     LOG_DEBUG("Freeing page with id %d", self->page_header.page_id.id);
     free(self);
+    self = NULL;
 }
 
 // TODO: change public signature so user won't know anything about id and use just pointer
@@ -143,8 +143,6 @@ Result page_delete_item(Page *self, Item *item) {
     LOG_DEBUG("Page: %d. Deleting item with id %d", self->page_header.page_id.id, item->index_in_page.id);
     ItemMetadata *metadata = get_metadata(self, item->index_in_page);
 
-    // item is freed by item iterator or leave in stack
-    //    free(item->payload.data);
     item->is_deleted = true;
     metadata->is_deleted = true;
     self->page_header.items_count--;
