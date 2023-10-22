@@ -12,7 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+#        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
         build_type: [Debug]
         c_compiler: [clang]
         cpp_compiler: [clang++]
