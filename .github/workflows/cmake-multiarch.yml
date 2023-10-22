@@ -43,14 +43,7 @@ jobs:
 
       - name: All System info
         run: |
-          uname -a
-          cat /etc/os-release
-          cat /proc/cpuinfo
-          cat /proc/meminfo
-          lscpu
-          nproc
-          lsb_release -a
-          clang --version
+          mount
 
       - name: Test
         working-directory: ${{ runner.workspace }}/build/test

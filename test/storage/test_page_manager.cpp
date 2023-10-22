@@ -7,7 +7,7 @@ extern "C" {
 }
 
 #define PAGE_SIZE 128
-#define FILE_PATH "test.llp"
+#define FILE_PATH "/tmp/test.llp"
 #define SIGNATURE 0x12345678
 
 ItemPayload get_payload() {
