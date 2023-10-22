@@ -6,7 +6,7 @@ extern "C" {
 }
 
 #define PAGE_SIZE 128
-#define FILE_PATH "/tmp/test_page_manager.txt"
+#define FILE_PATH "test.llp"
 #define SIGNATURE 0x12345678
 
 ItemPayload get_payload() {
@@ -20,7 +20,6 @@ ItemPayload get_payload() {
 // test page_manager. It should create page of size 128 bytes and write to it 8 bytes of data
 TEST(test_page_manager, test_page_manager) {
     PageManager *pm = page_manager_new();
-    remove(FILE_PATH);
     Result res = page_manager_init(pm, FILE_PATH, PAGE_SIZE, SIGNATURE);
     ASSERT_EQ(res.status, RES_OK);
 
@@ -47,12 +46,12 @@ TEST(test_page_manager, test_page_manager) {
     ASSERT_EQ(result.metadata.size, 8);
     ASSERT_EQ(result.metadata.data_offset, PAGE_SIZE - 8 * 2);
     ASSERT_EQ(result.metadata_offset_in_page, sizeof(PageHeader) + sizeof(ItemMetadata));
+    remove(FILE_PATH);
 }
 
 // add 2 items. Delete 1 item
 TEST(test_page_manager, test_add_after_delete) {
     PageManager *pm = page_manager_new();
-    remove(FILE_PATH);
     page_manager_init(pm, FILE_PATH, PAGE_SIZE, SIGNATURE);
 
     ItemPayload payload = get_payload();
@@ -72,12 +71,12 @@ TEST(test_page_manager, test_add_after_delete) {
     ASSERT_EQ(pm->current_free_page->page_header.free_space_end_offset, PAGE_SIZE - 8 * 2);
     ASSERT_EQ(pm->current_free_page->page_header.next_item_id.id, 2);
     ASSERT_EQ(item.is_deleted, true);
+    remove(FILE_PATH);
 }
 
 // add large item which is larger than page size. Check that it is split into 2 pages
 TEST(test_page_manager, test_add_large_item) {
     PageManager *pm = page_manager_new();
-    remove(FILE_PATH);
     page_manager_init(pm, FILE_PATH, PAGE_SIZE, SIGNATURE);
 
     // create continues 0xFF data with size 128
@@ -109,12 +108,12 @@ TEST(test_page_manager, test_add_large_item) {
     ASSERT_EQ(second_page->page_header.next_item_id.id, 1);
     ASSERT_EQ(second_page->page_header.free_space_start_offset, sizeof(PageHeader) + sizeof(ItemMetadata));
     ASSERT_EQ(second_page->page_header.free_space_end_offset, PAGE_SIZE - expected_bytes_on_second_page);
+    remove(FILE_PATH);
 }
 
 // delete large item which is larger than page size. Check that it is deleted from page 2
 TEST(test_page_manager, test_delete_large_item) {
     PageManager *pm = page_manager_new();
-    remove(FILE_PATH);
     page_manager_init(pm, FILE_PATH, PAGE_SIZE, SIGNATURE);
 
     const uint32_t payload_size = PAGE_SIZE;
@@ -143,4 +142,5 @@ TEST(test_page_manager, test_delete_large_item) {
     ASSERT_EQ(res.status, RES_OK);
     ASSERT_EQ(pm->current_free_page->page_header.items_count, 0);
     ASSERT_EQ(first_page->page_header.items_count, 0);
+    remove(FILE_PATH);
 }
