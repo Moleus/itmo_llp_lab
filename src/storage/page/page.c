@@ -158,11 +158,15 @@ Result page_delete_item(Page *self, Item *item) {
 
         // decrement next_item_id until we find not deleted item
         // TODO: write updated page_header on disk
-        int32_t last_item_index = self->page_header.next_item_id.id--;
-        while (self->page_header.next_item_id.id > 0 && get_metadata(self, item_id(last_item_index))->is_deleted) {
-            // TODO: does it change actual data in memory?
-            last_item_index = self->page_header.next_item_id.id--;
-        }
+
+        self->page_header.next_item_id.id--;
+
+        // Не дефрагментируем, т.к в больших айтемах придется менять индексы
+//        int32_t last_item_index = self->page_header.next_item_id.id--;
+//        while (self->page_header.next_item_id.id > 0 && get_metadata(self, item_id(last_item_index))->is_deleted) {
+//            // TODO: does it change actual data in memory?
+//            last_item_index = self->page_header.next_item_id.id--;
+//        }
         LOG_DEBUG("Delete item - Page %d. Updated next_item_id to %d after deletion", self->page_header.page_id.id,
                   self->page_header.next_item_id.id);
         // TODO: check if we can assign null item?
