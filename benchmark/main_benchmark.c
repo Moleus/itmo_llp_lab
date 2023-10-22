@@ -5,7 +5,9 @@
 #include "public/document_db/node.h"
 #include "public/document_db/document.h"
 
-long get_mem_usage() {
+unsigned char log_level = INFO;
+
+long get_mem_usage(void) {
     FILE *file = fopen("/proc/self/status", "r");
     int result = -1;
     char line[128] = "";
@@ -29,24 +31,6 @@ long get_file_size(const char *filename) {
 }
 
 #define BATCH_SIZE 100
-//1. Сделать тест, где вставки и удаления происходят вперемешку (500 вставок, 200 удалений)
-//- каждая вставка в случайное место
-//- после каждой вставки мерить время и размер файла
-//измерение вставок:
-//t = time()
-//write * 100
-//dt = time() - t
-double insert_test() {
-    clock_t start = clock(), end;
-    double insert_time;
-    for (int i = 0; i < BATCH_SIZE; i++) {
-        do_insert();
-    }
-    end = clock();
-    insert_time = (double) (end - start) / CLOCKS_PER_SEC;
-    return insert_time;
-}
-
 #define MAX_MEASUREMENTS 100
 #define MEASURE_EVERY 30
 #define DB_FILE "benchmark-data.llp"
@@ -59,14 +43,14 @@ long g_indirect_index_in_used_ids[MAX_MEASUREMENTS * BATCH_SIZE][PAGE_SIZE / siz
 long g_used_ids_count = 0;
 NodeValue g_node_variants[4];
 
-Node generate_random_node() {
+Node generate_random_node(void) {
     NodeValue node_value = g_node_variants[rand() % 4];
     node_id_t parent_id = g_used_ids[rand() % g_used_ids_count];
     Node node = (Node) {.parent_id = parent_id, .value = node_value};
     return node;
 }
 
-Node gen_root_node() {
+Node gen_root_node(void) {
     NodeValue node_value = g_node_variants[rand() % 4];
     Node node = (Node) {.parent_id = NULL_NODE_ID, .value = node_value};
     return node;
@@ -88,6 +72,25 @@ void delete_node(Document *doc, Node node) {
     DeleteNodeRequest req = (DeleteNodeRequest) {.node = &node};
     document_delete_node(doc, &req);
 }
+
+//1. Сделать тест, где вставки и удаления происходят вперемешку (500 вставок, 200 удалений)
+//- каждая вставка в случайное место
+//- после каждой вставки мерить время и размер файла
+//измерение вставок:
+//t = time()
+//write * 100
+//dt = time() - t
+double insert_test(Document *doc) {
+    clock_t start = clock(), end;
+    double insert_time;
+    for (int i = 0; i < BATCH_SIZE; i++) {
+        insert_node(doc, generate_random_node());
+    }
+    end = clock();
+    insert_time = (double) (end - start) / CLOCKS_PER_SEC;
+    return insert_time;
+}
+
 
 Document *prepare() {
     g_node_variants[0] = (NodeValue) {.type = INT_32, .int_value = 42};
@@ -117,9 +120,8 @@ int main() {
         double insert_time;
         double delete_time;
 
-        insert_time = insert_test();
         for (int j = 0; j < MEASURE_EVERY; j++) {
-            do_insert();
+            insert_test(doc);
         }
         long mem_usage = get_mem_usage();
         long file_size = get_file_size("benchmark.csv");
