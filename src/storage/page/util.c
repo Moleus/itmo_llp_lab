@@ -29,7 +29,9 @@ page_index_t page_get_item_continuation(Page *self, Item *item) {
 }
 
 ItemMetadata *get_metadata(const Page *self, item_index_t item_id) {
-    return (ItemMetadata *) (self->page_payload + sizeof(ItemMetadata) * item_id.id);
+    ItemMetadata *metadata = (ItemMetadata *) (((uint8_t *)self->page_payload) + ((uint32_t) sizeof(ItemMetadata) * (uint32_t) item_id.id));
+    LOG_DEBUG("Payload address: %p, metadata address: %p", self->page_payload, metadata);
+    return metadata;
 }
 
 uint8_t *get_item_data_addr(const Page *self, uint32_t data_offset) {
