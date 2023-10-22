@@ -13,7 +13,7 @@ PageIterator *page_iterator_new(PageManager *self) {
     Page *page = NULL;
     assert(page_manager_get_pages_count(self) > 0);
     page_manager_read_page(self, page_id(0), &page);
-    *result = (PageIterator) {.page_manager = self, .next_page_id = 1,
+    *result = (PageIterator) {.page_manager = self, .next_page_id = {1},
             .current_page = page};
     return result;
 }
@@ -57,7 +57,7 @@ ItemIterator *item_iterator_new(PageManager *page_manager, Item *reusable_memory
 
     PageIterator *page_iterator = page_manager_get_pages(page_manager);
     *reusable_memory = (Item) {.is_deleted = true, .index_in_page.id = -1, .payload = {.data = NULL, .size = 0}};
-    *item_it = (ItemIterator) {.page_iterator = page_iterator, .current_item = reusable_memory, .current_item_index = -1, .allocated_payloads = allocated_payloads, .allocated_payloads_count = 0};
+    *item_it = (ItemIterator) {.page_iterator = page_iterator, .current_item = reusable_memory, .current_item_index = {-1}, .allocated_payloads = allocated_payloads, .allocated_payloads_count = 0};
     return item_it;
 }
 

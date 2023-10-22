@@ -15,7 +15,7 @@ Page *page_new(page_index_t page_id, uint32_t page_size) {
     PageHeader header = {
             .page_id = page_id,
             .items_count = 0,
-            .next_item_id = 0,
+            .next_item_id = {0},
             .free_space_start_offset = HEADER_SIZE,
             .free_space_end_offset = page_size,
             .page_size = page_size,
