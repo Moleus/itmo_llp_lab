@@ -70,9 +70,8 @@ Result file_write(FileState *fs, void *data, size_t offset, size_t size) {
     if (res != 0) {
         return ERROR("Failed to set file offset");
     }
-    // TODO: can we write more than 1 byte? (size > 1)
-    size_t written = fwrite(data, sizeof(char), size, fs->file);
-    if (written != size) {
+    size_t written = fwrite(data, size, 1, fs->file);
+    if (written == 0) {
         return ERROR("Failed to write to file");
     }
     return OK;
@@ -88,7 +87,7 @@ Result file_read(FileState *fs, void *data, size_t offset, size_t size) {
         return ERROR("Failed to set file offset");
     }
     size_t read = fread(data, size, 1, fs->file);
-    if (read != size) {
+    if (read == 0) {
         return ERROR("Failed to read from file");
     }
     return OK;

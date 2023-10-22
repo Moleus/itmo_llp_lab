@@ -35,7 +35,7 @@ TEST(test_file, test_file_read) {
     FileState *file = file_new();
     // manually write to file
     FILE *fd = fopen(FILE_PATH, "w");
-    fwrite("test", sizeof(char), 4, fd);
+    fwrite("test", 4, 1, fd);
     fclose(fd);
     char buf[2];
     file_open(file, FILE_PATH);
