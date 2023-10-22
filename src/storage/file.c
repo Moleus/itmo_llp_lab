@@ -87,7 +87,7 @@ Result file_read(FileState *fs, void *data, size_t offset, size_t size) {
     if (res != 0) {
         return ERROR("Failed to set file offset");
     }
-    size_t read = fread(data, sizeof(char), size, fs->file);
+    size_t read = fread(data, size, 1, fs->file);
     if (read != size) {
         return ERROR("Failed to read from file");
     }
