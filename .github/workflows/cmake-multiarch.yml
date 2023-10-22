@@ -17,9 +17,9 @@ jobs:
         build_type: [Debug]
         c_compiler: [clang]
         cpp_compiler: [clang++]
-        include:
-          - os: windows-latest
-            defines: '-DWINDOWS=TRUE'
+#        include:
+#          - os: windows-latest
+#            defines: '-DWINDOWS=TRUE'
 #        exclude:
 #          - os: windows-latest
 #            cpp_compiler: g++
