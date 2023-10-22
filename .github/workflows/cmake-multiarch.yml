@@ -27,19 +27,29 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Setup Ninja
-        uses: ashutoshvarma/setup-ninja@v1.1
-        with:
-          version: 1.11.1
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build
 
-      - name: Build with CMake
-        uses: ashutoshvarma/action-cmake-build@master
-        with:
-          build-dir: ${{ runner.workspace }}/build
-          cc: ${{ matrix.c_compiler }}
-          cxx: ${{ matrix.cpp_compiler }}
-          configure-options: -G Ninja ${{ matrix.defines }}
-          build-type: ${{ matrix.build_type }}
+      - name: Compile
+        working-directory: ${{ runner.workspace }}
+        run: |
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -S . -B build
+          cmake --build ./build --config Debug --parallel 4
+#      - name: Setup Ninja
+#        uses: ashutoshvarma/setup-ninja@v1.1
+#        with:
+#          version: 1.11.1
+#
+#      - name: Build with CMake
+#        uses: ashutoshvarma/action-cmake-build@master
+#        with:
+#          build-dir: ${{ runner.workspace }}/build
+#          cc: ${{ matrix.c_compiler }}
+#          cxx: ${{ matrix.cpp_compiler }}
+#          configure-options: -G Ninja ${{ matrix.defines }}
+#          build-type: ${{ matrix.build_type }}
 
       - name: All System info
         run: |
