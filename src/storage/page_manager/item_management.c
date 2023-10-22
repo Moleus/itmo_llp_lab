@@ -113,6 +113,7 @@ Result page_manager_delete_item(PageManager *self, Page *page, Item *item) {
             uint32_t payload_size;
             page_manager_calculate_large_item_size(self, current_page, item_id(0), &payload_size);
             uint8_t buffer[payload_size];
+            LOG_DEBUG("Reading large item from page %d. Size: %d", current_page->page_header.page_id.id, payload_size);
             res = page_manager_get_item(self, current_page, item_id(0), buffer, item_to_delete);
             ABORT_IF_FAIL(res, "Delete item - Failed to read item from page in memory")
             assert(item_to_delete->payload.size == payload_size);
