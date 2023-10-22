@@ -41,6 +41,17 @@ jobs:
           configure-options: -G Ninja ${{ matrix.defines }}
           build-type: ${{ matrix.build_type }}
 
+      - name: All System info
+        run: |
+          uname -a
+          cat /etc/os-release
+          cat /proc/cpuinfo
+          cat /proc/meminfo
+          lscpu
+          nproc
+          lsb_release -a
+          clang --version
+
       - name: Test
         working-directory: ${{ runner.workspace }}/build/test
         run: ctest --build-config ${{ matrix.build_type }} --output-on-failure -R test_delete_large_item
