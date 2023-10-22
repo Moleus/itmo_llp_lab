@@ -15,6 +15,7 @@ FetchContent_MakeAvailable(googletest)
 file(GLOB_RECURSE SOURCES ${CMAKE_SOURCE_DIR}/src/storage/**.c)
 file(GLOB_RECURSE HEADERS ${CMAKE_SOURCE_DIR}/include/**.h)
 file(GLOB_RECURSE TEST_SOURCES ${CMAKE_CURRENT_LIST_DIR}/**.cpp)
+file(GLOB_RECURSE TEST_HEADERS ${CMAKE_CURRENT_LIST_DIR}/**.h)
 
 ## google test
 enable_testing()
@@ -24,6 +25,7 @@ add_executable(
         ${SOURCES}
         ${HEADERS}
         ${TEST_SOURCES}
+        ${TEST_HEADERS}
 )
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR}/include)
 

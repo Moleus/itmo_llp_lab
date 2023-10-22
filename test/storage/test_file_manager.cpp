@@ -1,17 +1,9 @@
 #include "gtest/gtest.h"
 #include <stdio.h>
+#include "common.h"
 
 extern "C" {
     #include "private/storage/file_manager.h"
-}
-
-#define FILE_PATH "test.llp"
-
-void remove_file() {
-    if (remove(FILE_PATH) == -1) {
-        printf("Failed to remove file %s\n", FILE_PATH);
-        exit(1);
-    }
 }
 
 TEST(test_file_manager, test_file_manager_new) {

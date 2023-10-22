@@ -1,5 +1,6 @@
 #include "gtest/gtest.h"
 #include <cstdint>
+#include "common.h"
 
 extern "C" {
 #include "private/storage/page_manager.h"
@@ -7,7 +8,6 @@ extern "C" {
 }
 
 #define PAGE_SIZE 128
-#define FILE_PATH "test.llp"
 #define SIGNATURE 0x12345678
 
 ItemPayload get_payload() {
@@ -16,13 +16,6 @@ ItemPayload get_payload() {
             .data = (uint8_t *) "\x00\x01\x02\x03\x04\x05\x06\x07"
     };
     return payload;
-}
-
-void remove_file() {
-    if (remove(FILE_PATH) == -1) {
-        printf("Failed to remove file %s\n", FILE_PATH);
-        exit(1);
-    }
 }
 
 // test page_manager. It should create page of size 128 bytes and write to it 8 bytes of data
