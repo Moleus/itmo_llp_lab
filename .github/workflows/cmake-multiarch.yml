@@ -17,11 +17,9 @@ jobs:
         c_compiler: [clang]
         include:
           - os: windows-latest
-            c_compiler: clang
             cpp_compiler: clang
             defines: '-DWINDOWS=TRUE'
           - os: ubuntu-latest
-            c_compiler: clang
             cpp_compiler: clang
             defines: '-DWINDOWS=FALSE'
 
@@ -37,10 +35,10 @@ jobs:
         uses: ashutoshvarma/action-cmake-build@master
         with:
           build-dir: ${{ runner.workspace }}/build
-          cc: ${{ matrix.config.c_compiler }}
-          cxx: ${{ matrix.config.cpp_compiler }}
-          configure-options: -G Ninja ${{ matrix.config.defines }}
-          build-type: ${{ matrix.config.build_type }}
+          cc: ${{ matrix.c_compiler }}
+          cxx: ${{ matrix.cpp_compiler }}
+          configure-options: -G Ninja ${{ matrix.defines }}
+          build-type: ${{ matrix.build_type }}
 
       - name: Test
         working-directory: ${{ runner.workspace }}/build/test
