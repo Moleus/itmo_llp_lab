@@ -85,7 +85,7 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_
     res = file_manager_read(self->file_manager, page_offset_in_file, page_size, page);
     RETURN_IF_FAIL(res, "Failed to read page header from file")
     // read payload
-    LOG_DEBUG("Read page %d. Offset: %08X, items count: %d, free space: ", id.id,
+    LOG_DEBUG("Read page %d. Offset: %08X, items count: %d, free space: %d", id.id,
               page_offset_in_file, page->page_header.items_count,
               page->page_header.free_space_end_offset - page->page_header.free_space_start_offset);
 

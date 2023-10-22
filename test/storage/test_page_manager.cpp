@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include <cstdint>
 
 extern "C" {
 #include "private/storage/page_manager.h"
@@ -142,5 +143,6 @@ TEST(test_page_manager, test_delete_large_item) {
     ASSERT_EQ(res.status, RES_OK);
     ASSERT_EQ(pm->current_free_page->page_header.items_count, 0);
     ASSERT_EQ(first_page->page_header.items_count, 0);
+    page_manager_destroy(pm);
     remove(FILE_PATH);
 }
