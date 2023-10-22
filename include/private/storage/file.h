@@ -8,5 +8,5 @@ struct FileState {
     FILE *file;
     bool is_open;
     bool is_new;
-    size_t size;
+    uint32_t size;
 };

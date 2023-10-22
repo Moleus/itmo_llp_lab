@@ -38,7 +38,7 @@ Result file_open(FileState *fs, const char *filename) {
             return ERROR("Failed to close file");
         }
     }
-    FILE *file = fopen(filename, "r+b");
+    FILE *file = fopen(filename, "rb+");
     RETURN_IF_NULL(file, "Can't open file")
 
     fs->file = file;
@@ -74,6 +74,7 @@ Result file_write(FileState *fs, void *data, size_t offset, size_t size) {
     if (written == 0) {
         return ERROR("Failed to write to file");
     }
+    fflush(fs->file);
     return OK;
 }
 
@@ -99,7 +100,7 @@ bool file_is_open(FileState *fs) {
     return fs->is_open;
 }
 
-Result file_get_file_size(FileState *fs, size_t *file_size) {
+Result file_get_file_size(FileState *fs, uint32_t *file_size) {
     ASSERT_ARG_NOT_NULL(fs)
     ASSERT_ARG_NOT_NULL(file_size)
 
