@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "private/storage/page.h"
 
 size_t page_size(Page *self) {
@@ -29,8 +30,9 @@ page_index_t page_get_item_continuation(Page *self, Item *item) {
 }
 
 ItemMetadata *get_metadata(const Page *self, item_index_t item_id) {
-    ItemMetadata *metadata = (ItemMetadata *) (((uint8_t *)self->page_payload) + ((uint32_t) sizeof(ItemMetadata) * (uint32_t) item_id.id));
-    LOG_DEBUG("Payload address: %p, metadata address: %p", self->page_payload, metadata);
+    assert(item_id.id >= 0);
+    ItemMetadata *metadata = (ItemMetadata *) (((uint8_t *)self->page_payload) + ((uint32_t) sizeof(ItemMetadata) * item_id.id));
+    LOG_DEBUG("Payload address: %p, metadata address: %p, item id: %d, page id: %d", self->page_payload, metadata, item_id.id, self->page_header.page_id);
     return metadata;
 }
 

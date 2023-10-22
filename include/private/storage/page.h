@@ -6,7 +6,7 @@
 
 #define HEADER_SIZE sizeof(PageHeader)
 
-typedef struct item_index_t {
+typedef struct __attribute__((packed)) item_index_t {
     int32_t id;
 } item_index_t;
 
@@ -20,7 +20,7 @@ static inline item_index_t next_item(item_index_t self) {
 
 //#define NULL_ITEM (Item){.size=0, .data = NULL, .index_in_page = 0, .is_deleted = true}
 
-typedef struct page_index_t {
+typedef struct __attribute__((packed)) page_index_t {
     int32_t id;
 } page_index_t;
 #define NULL_PAGE_INDEX (page_index_t) {.id = -1}
