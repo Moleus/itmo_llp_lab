@@ -12,14 +12,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-#        os: [ubuntu-latest, windows-latest]
-        os: [ubuntu-latest]
+        os: [ubuntu-latest, windows-latest]
+#        os: [ubuntu-latest]
         build_type: [Debug]
-        c_compiler: [clang]
-        cpp_compiler: [clang++]
-#        include:
-#          - os: windows-latest
-#            defines: '-DWINDOWS=TRUE'
+        c_compiler: [gcc]
+        cpp_compiler: [g++]
+        include:
+          - os: windows-latest
+            defines: '-DWINDOWS=TRUE'
 #        exclude:
 #          - os: windows-latest
 #            cpp_compiler: g++
@@ -27,45 +27,20 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ninja-build
-
-      - name: All System info
-        run: |
-          mount
-          clang --version
-          cmake --version
-          ninja --version
-
-      - name: Compile
-        working-directory: ${{ runner.workspace }}/itmo_llp_lab
-        run: |
-          export CXX=clang++
-          export CC=clang
-          cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -S . -B build
-          cmake --build ./build --config Debug --parallel 4
-      - name: Store resulting binary
-        uses: actions/upload-artifact@v3
+      - name: Setup Ninja
+        uses: ashutoshvarma/setup-ninja@v1.1
         with:
-          name: build-folder
-          path: |
-            build/test
-#      - name: Setup Ninja
-#        uses: ashutoshvarma/setup-ninja@v1.1
-#        with:
-#          version: 1.11.1
-#
-#      - name: Build with CMake
-#        uses: ashutoshvarma/action-cmake-build@master
-#        with:
-#          build-dir: ${{ runner.workspace }}/build
-#          cc: ${{ matrix.c_compiler }}
-#          cxx: ${{ matrix.cpp_compiler }}
-#          configure-options: -G Ninja ${{ matrix.defines }}
-#          build-type: ${{ matrix.build_type }}
+          version: 1.11.1
+
+      - name: Build with CMake
+        uses: ashutoshvarma/action-cmake-build@master
+        with:
+          build-dir: ${{ runner.workspace }}/build
+          cc: ${{ matrix.c_compiler }}
+          cxx: ${{ matrix.cpp_compiler }}
+          configure-options: -G Ninja ${{ matrix.defines }}
+          build-type: ${{ matrix.build_type }}
 
       - name: Test
-        working-directory: ${{ runner.workspace }}/itmo_llp_lab/build/test
-        run: ctest --build-config ${{ matrix.build_type }} --output-on-failure -R test_delete_large_item
+        working-directory: ${{ runner.workspace }}/build/test
+        run: ctest --build-config ${{ matrix.build_type }} --output-on-failure
