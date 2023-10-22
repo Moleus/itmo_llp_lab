@@ -30,11 +30,13 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang cmake ninja-build
+          sudo apt-get install -y ninja-build
 
       - name: Compile
         working-directory: ${{ runner.workspace }}/itmo_llp_lab
         run: |
+          export CXX=clang++
+          export CC=clang
           cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -S . -B build
           cmake --build ./build --config Debug --parallel 4
 #      - name: Setup Ninja
