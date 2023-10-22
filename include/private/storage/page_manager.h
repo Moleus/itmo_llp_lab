@@ -9,7 +9,7 @@ struct PageManager{
     FileManager *file_manager;
     AllocatedPage *allocated_pages;
     // represents amount of pages loaded in ram
-    int32_t allocated_pages_count;
+    uint32_t allocated_pages_count;
     //TODO: check usage of pages_count.
     // keep track of free page
     Page* current_free_page;

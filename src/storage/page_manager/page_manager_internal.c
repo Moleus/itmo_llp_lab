@@ -61,7 +61,7 @@ Result page_manager_read_page(PageManager *self, page_index_t id, Page **result_
 
     // NOTE: здесь мы выдаем ошибку, если страницы не существует.
     uint32_t pages_count = page_manager_get_pages_count(self);
-    if (id.id >= pages_count) {
+    if (id.id >= (int32_t) pages_count) {
         LOG_ERR("Page %d doesn't exist. Total pages: %d", id.id, pages_count);
         ABORT_EXIT(INTERNAL_LIB_ERROR, "Page doesn't exist")
     }

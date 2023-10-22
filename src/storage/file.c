@@ -9,7 +9,7 @@
 #include <unistd.h>
 #endif
 
-FileState * file_new() {
+FileState * file_new(void) {
     FileState *fs = malloc(sizeof(FileState));
     ASSERT_NOT_NULL(fs, FAILED_TO_ALLOCATE_MEMORY)
     fs->is_open = false;

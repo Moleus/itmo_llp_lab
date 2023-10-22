@@ -17,7 +17,7 @@
  */
 typedef struct PageManager PageManager;
 
-PageManager * page_manager_new();
+PageManager * page_manager_new(void);
 
 void page_manager_destroy(PageManager *self);
 
@@ -57,6 +57,6 @@ Result
 page_manager_get_item(PageManager *self, Page *page, item_index_t item_id, uint8_t *payload_buffer, Item *result);
 
 // free page management
-Result page_manager_get_page_for_data(PageManager *self, ItemPayload data, Page **result);
+Result page_manager_get_page_for_data(PageManager *self, Page **result);
 
 Result page_manager_write_page_on_disk(PageManager *self, Page *page);

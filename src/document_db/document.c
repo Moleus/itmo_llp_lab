@@ -38,7 +38,7 @@ Result document_persist_new_node(Document *self, Node *node) {
     };
 
     Page *page = NULL;
-    Result res = page_manager_get_page_for_data(self->page_manager, itemPayload, &page);
+    Result res = page_manager_get_page_for_data(self->page_manager, &page);
     RETURN_IF_FAIL(res, "failed to persist new data")
 
     ItemAddResult item_result;

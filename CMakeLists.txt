@@ -3,7 +3,7 @@ project(lab C)
 
 set(CMAKE_C_STANDARD 11)
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address -g")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wpacked")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wpedantic")
 set(CMAKE_VERBOSE_MAKEFILE ON)
 
 file(GLOB_RECURSE SOURCES ${CMAKE_CURRENT_LIST_DIR}/src/**.c)
@@ -23,3 +23,5 @@ add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 
 # add cmake from test/ path
 add_subdirectory(test)
+
+add_subdirectory(benchmark)

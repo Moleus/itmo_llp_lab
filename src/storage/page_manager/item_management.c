@@ -71,7 +71,7 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
         }
         ItemPayload payload_to_write = {
                 // TODO: can add pointers?
-                .data = payload.data + bytes_written,
+                .data = (void*) ((uint8_t *)payload.data + bytes_written),
                 .size = payload_size
         };
         Result res = page_manager_add_part_of_item(self, current_page, payload_to_write, continue_on_page,

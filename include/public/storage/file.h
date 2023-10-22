@@ -4,7 +4,7 @@
 
 typedef struct FileState FileState;
 
-FileState * file_new();
+FileState * file_new(void);
 
 void file_destroy(FileState *fs);
 

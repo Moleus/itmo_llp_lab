@@ -2,7 +2,7 @@
 #include "private/storage/file.h"
 #include "private/storage/page.h"
 
-FileManager *file_manager_new() {
+FileManager *file_manager_new(void) {
     FileManager *fm = malloc(sizeof(FileManager));
     ASSERT_NOT_NULL(fm, FAILED_TO_ALLOCATE_MEMORY)
     FileState *fs = file_new();

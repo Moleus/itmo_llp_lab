@@ -6,7 +6,7 @@
 #include "private/storage/file_manager.h"
 
 // Public
-PageManager *page_manager_new() {
+PageManager *page_manager_new(void) {
     PageManager *pm = malloc(sizeof(PageManager));
     ASSERT_NOT_NULL(pm, FAILED_TO_ALLOCATE_MEMORY)
     pm->file_manager = file_manager_new();
@@ -92,7 +92,7 @@ Result page_manager_get_page_from_ram(PageManager *self, page_index_t page_id, P
 
     // for each page in pages
     AllocatedPage *current_page = self->allocated_pages;
-    for (size_t i = 0; i < self->allocated_pages_count; i++) {
+    for (uint32_t i = 0; i < self->allocated_pages_count; i++) {
         if (current_page == NULL) {
             LOG_ERR("Page from ram %d is null. Pages in memory: %d", i, self->allocated_pages_count);
             ABORT_EXIT(INTERNAL_LIB_ERROR, "Page in memory is null")

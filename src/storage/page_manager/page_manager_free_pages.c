@@ -3,7 +3,7 @@
 
 #define MINIMUM_DATA_PART_SIZE_BYTES 8
 
-Result page_manager_get_page_for_data(PageManager *self, ItemPayload data, Page **result) {
+Result page_manager_get_page_for_data(PageManager *self, Page **result) {
     // get data size. Calculate size with metadata.
     // Bad: Iterate over all pages and find page which has enough space
     // Good: Take page for O(1)

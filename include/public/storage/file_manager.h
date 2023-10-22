@@ -9,7 +9,7 @@ typedef struct FileManager FileManager;
 
 typedef struct FileHeaderConstants FileHeaderConstants;
 
-FileManager * file_manager_new();
+FileManager * file_manager_new(void);
 
 void file_manager_destroy(FileManager *self);
 
