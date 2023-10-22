@@ -29,7 +29,7 @@ Result file_manager_init(FileManager *self, const char *filename, FileHeaderCons
     Result res = file_manager_open(self, filename);
     RETURN_IF_FAIL(res, "Failed to open file")
 
-    LOG_INFO("Init file. new: %b. size: %d. Writing header", self->file->is_new, self->file->size);
+    LOG_INFO("Init file. new: %d. size: %d. Writing header", self->file->is_new, self->file->size);
     if (self->file->size == 1) {
         uint8_t data = 0;
         file_read(self->file, &data, 0, 1);
@@ -41,6 +41,7 @@ Result file_manager_init(FileManager *self, const char *filename, FileHeaderCons
         self->header.dynamic.current_free_page = 0;
         self->header.dynamic.page_count = 0;
         res = file_manager_write_header(self);
+        LOG_DEBUG("File is new. Writing header", "");
         RETURN_IF_FAIL(res, "Failed to write file header")
     } else {
         res = file_manager_read_header(self);
