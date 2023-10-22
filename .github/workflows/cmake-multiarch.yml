@@ -51,7 +51,7 @@ jobs:
         with:
           name: build-folder
           path: |
-            build
+            build/test
 #      - name: Setup Ninja
 #        uses: ashutoshvarma/setup-ninja@v1.1
 #        with:
