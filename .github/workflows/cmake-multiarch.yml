@@ -15,13 +15,13 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         build_type: [Release]
         c_compiler: [clang]
-        cpp_compiler: [clang++, g++]
+        cpp_compiler: [g++]
         include:
           - os: windows-latest
             defines: '-DWINDOWS=TRUE'
-        exclude:
-          - os: windows-latest
-            cpp_compiler: g++
+#        exclude:
+#          - os: windows-latest
+#            cpp_compiler: g++
 
     steps:
       - uses: actions/checkout@v3
