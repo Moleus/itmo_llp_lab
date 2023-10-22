@@ -1,4 +1,5 @@
 #include "gtest/gtest.h"
+#include <stdio.h>
 
 extern "C" {
     #include "private/storage/file_manager.h"
@@ -6,12 +7,19 @@ extern "C" {
 
 #define FILE_PATH "test.llp"
 
+void remove_file() {
+    if (remove(FILE_PATH) == -1) {
+        printf("Failed to remove file %s\n", FILE_PATH);
+        exit(1);
+    }
+}
+
 TEST(test_file_manager, test_file_manager_new) {
     FileManager *fm = file_manager_new();
     ASSERT_NE(fm->file, nullptr);
     file_manager_open(fm, FILE_PATH);
     file_manager_destroy(fm);
-    remove(FILE_PATH);
+    remove_file();
 }
 
 TEST(test_file_manager, test_file_manager_init) {
@@ -30,7 +38,7 @@ TEST(test_file_manager, test_file_manager_init) {
     ASSERT_EQ(fm->header.dynamic.current_free_page, 0);
     ASSERT_EQ(fm->header.dynamic.page_count, 0);
     file_manager_destroy(fm);
-    remove(FILE_PATH);
+    remove_file();
 }
 
 TEST(test_file_manager, test_file_write_header) {
@@ -49,7 +57,7 @@ TEST(test_file_manager, test_file_write_header) {
     ASSERT_EQ(res.status, RES_OK);
     ASSERT_EQ(fm->header.dynamic.current_free_page, 1);
     file_manager_destroy(fm);
-    remove(FILE_PATH);
+    remove_file();
 }
 
 // test reopen file and read header
@@ -71,5 +79,5 @@ TEST(test_file_manager, test_file_manager_reopen) {
     ASSERT_EQ(res.status, RES_OK);
     ASSERT_EQ(fm->header.dynamic.current_free_page, 1);
     file_manager_destroy(fm);
-    remove(FILE_PATH);
+    remove_file();
 }
