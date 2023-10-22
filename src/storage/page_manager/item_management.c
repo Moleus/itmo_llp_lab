@@ -26,10 +26,11 @@ Result page_manager_add_part_of_item(PageManager *self, Page *page, ItemPayload 
     RETURN_IF_FAIL(res, "Failed to add item to page in memory")
 
     assert(item_add_result->metadata_offset_in_page >= sizeof(PageHeader));
-    LOG_DEBUG("Add item %d to page %d. iSize: %d. Status: %b. Offset in Page %d. Total items: %d",
+    LOG_DEBUG("Add item %d to page %d. iSize: %d. Status: %d. Offset in Page %d. Total items: %d",
               item_add_result->metadata.item_id.id,
               page->page_header.page_id.id, item_add_result->metadata.size, item_add_result->write_status.complete,
               item_add_result->metadata_offset_in_page, page->page_header.items_count);
+
     // Persist head of the item on disk. We return only info about the first part in itemAddResult
     return write_page_on_disk(self, page);
 }
@@ -51,6 +52,8 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
     uint32_t bytes_written = 0;
     ItemAddResult tmp_add_result;
     Page *current_page = page;
+
+    LOG_INFO("Put item to page %d. Payload size: %d", page->page_header.page_id.id, payload.size);
 
     // if we don't have enough space in page then we need to allocate new page and place left data there
     while (bytes_written < payload.size) {
@@ -141,6 +144,8 @@ Result page_manager_calculate_large_item_size(PageManager *self, Page *page, ite
     tmp_read_item.index_in_page = item_id;
     *result = 0;
 
+    LOG_DEBUG("Calculate large item size. Page: %d. Item: %d", page->page_header.page_id.id, item_id.id);
+
     while (current_page_idx.id != NULL_PAGE_INDEX.id) {
         if (current_page_idx.id != page_get_id(page).id) {
             // is next page
@@ -174,8 +179,11 @@ Result page_manager_get_item(PageManager *self, Page *page, item_index_t item_id
     Item *tmp_read_item = result;
     tmp_read_item->index_in_page = item_id;
 
+    LOG_DEBUG("Get item. Page: %d. Item: %d", page->page_header.page_id.id, item_id.id);
+
     while (current_page_idx.id != NULL_PAGE_INDEX.id) {
         if (current_page_idx.id != page_get_id(page).id) {
+            LOG_DEBUG("Item continues on page %d", current_page_idx.id);
             // is next page
             current_page = NULL;
             Result res = page_manager_read_page(self, current_page_idx, &current_page);
@@ -195,5 +203,6 @@ Result page_manager_get_item(PageManager *self, Page *page, item_index_t item_id
     }
     result->payload.data = payload_buffer;
     result->payload.size = item_cum_size;
+    LOG_DEBUG("Get item finished. Page: %d. Item: %d. Size: %d", page->page_header.page_id.id, item_id.id, item_cum_size);
     return OK;
 }

@@ -27,6 +27,7 @@ Page *page_manager_get_current_free_page(PageManager *self) {
         Result res = page_manager_read_page(self, free_page_id, &self->current_free_page);
         ABORT_IF_FAIL(res, "Failed to read current free page from disk");
     }
+    LOG_DEBUG("Get current free page %d", self->current_free_page->page_header.page_id.id);
     return self->current_free_page;
 }
 
