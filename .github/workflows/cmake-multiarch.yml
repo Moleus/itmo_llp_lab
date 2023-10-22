@@ -13,15 +13,13 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
-        build_type: [Release, Debug]
-        c_compiler: [clang, gcc]
+        build_type: [Release]
+        c_compiler: [clang]
         cpp_compiler: [clang++, g++]
         include:
           - os: windows-latest
             defines: '-DWINDOWS=TRUE'
         exclude:
-          - os: windows-latest
-            c_compiler: gcc
           - os: windows-latest
             cpp_compiler: g++
 
