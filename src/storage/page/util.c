@@ -25,6 +25,7 @@ page_index_t page_get_item_continuation(Page *self, Item *item) {
     ASSERT_ARG_NOT_NULL(self)
     ASSERT_ARG_NOT_NULL(item)
 
+    LOG_DEBUG("Get item continuation. Page id: %d, item id: %d", self->page_header.page_id.id, item->index_in_page.id);
     ItemMetadata *metadata = get_metadata(self, item->index_in_page);
     return metadata->continues_on_page;
 }

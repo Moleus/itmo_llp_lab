@@ -181,8 +181,11 @@ Result page_manager_get_item(PageManager *self, Page *page, item_index_t item_id
 
     LOG_DEBUG("Get item. Page: %d. Item: %d", page->page_header.page_id.id, item_id.id);
 
+    int double_loop_guard = 0;
     while (current_page_idx.id != NULL_PAGE_INDEX.id) {
+        double_loop_guard++;
         if (current_page_idx.id != page_get_id(page).id) {
+            double_loop_guard--;
             LOG_DEBUG("Item continues on page %d", current_page_idx.id);
             // is next page
             current_page = NULL;
@@ -191,6 +194,7 @@ Result page_manager_get_item(PageManager *self, Page *page, item_index_t item_id
             // continuation of item should always be the first item in page;
             tmp_read_item->index_in_page.id = 0;
         }
+        assert(double_loop_guard <= 1);
         // persist in memory
         Result res = page_get_item(current_page, tmp_read_item->index_in_page, tmp_read_item);
         ABORT_IF_FAIL(res, "Failed to read item from page in memory")
