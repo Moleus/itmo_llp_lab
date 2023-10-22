@@ -201,6 +201,8 @@ Result page_manager_get_item(PageManager *self, Page *page, item_index_t item_id
         ABORT_IF_FAIL(res, "Failed to read item from page in memory")
         // TODO: sum item_cum_size and place memory in result
         item_cum_size += tmp_read_item->payload.size;
+        LOG_DEBUG("Copying to address %p. Size: %d. tmp_item_addr %p", payload_buffer + item_cum_size - tmp_read_item->payload.size,
+                  tmp_read_item->payload.size, tmp_read_item->payload.data);
         memcpy(payload_buffer + item_cum_size - tmp_read_item->payload.size, tmp_read_item->payload.data,
                tmp_read_item->payload.size);
         // continue

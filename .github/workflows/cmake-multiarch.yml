@@ -32,6 +32,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ninja-build
 
+      - name: All System info
+        run: |
+          mount
+          clang --version
+          cmake --version
+          ninja --version
+
       - name: Compile
         working-directory: ${{ runner.workspace }}/itmo_llp_lab
         run: |
@@ -52,10 +59,6 @@ jobs:
 #          cxx: ${{ matrix.cpp_compiler }}
 #          configure-options: -G Ninja ${{ matrix.defines }}
 #          build-type: ${{ matrix.build_type }}
-
-      - name: All System info
-        run: |
-          mount
 
       - name: Test
         working-directory: ${{ runner.workspace }}/itmo_llp_lab/build/test
