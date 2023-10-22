@@ -99,7 +99,7 @@ Result page_get_item(Page *self, item_index_t item_id, Item *item);
 
 uint32_t page_get_free_space_left(Page *self);
 
-uint32_t page_get_payload_available_space(Page *self);
+int32_t page_get_payload_available_space(Page *self);
 
 page_index_t page_get_item_continuation(Page *self, Item *item);
 

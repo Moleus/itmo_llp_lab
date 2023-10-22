@@ -79,6 +79,7 @@ bool item_iterator_has_next(ItemIterator *self) {
         return false;
     }
     // Если текущая страница не пустая
+    // проблема, когда мы нашли следующую страницу и перешли на нее. Тогда наш индекс больше чем следующий айтем
     if (next_item(self->current_item_index).id < cur_page->page_header.next_item_id.id) {
         // TODO: работает ли это, когда мы удаляем айтемы со страницы?
         // Скорее всего да, т.к за next_item_id не должно быть удаленных элементов
@@ -102,6 +103,8 @@ bool item_iterator_has_next(ItemIterator *self) {
                 continue;
             }
             LOG_DEBUG("ItemIterator - found item on page %d", cur_page->page_header.page_id.id);
+            // если мы нашли следующую страницу, то обнуляем индес
+            self->current_item_index.id = -1;
             return true;
         }
     }

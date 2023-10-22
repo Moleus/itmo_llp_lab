@@ -1,5 +1,6 @@
 #include <assert.h>
 #include "private/storage/page.h"
+#include "private/storage/page_manager.h"
 
 size_t page_size(Page *self) {
     return self->page_header.page_size;
@@ -9,8 +10,8 @@ uint32_t page_get_free_space_left(Page *self) {
     return self->page_header.free_space_end_offset - self->page_header.free_space_start_offset;
 }
 
-uint32_t page_get_payload_available_space(Page *self) {
-    return page_get_free_space_left(self) - (uint32_t) sizeof(ItemMetadata);
+int32_t page_get_payload_available_space(Page *self) {
+    return max((int32_t) page_get_free_space_left(self) - (int32_t) sizeof(ItemMetadata), 0);
 }
 
 uint32_t page_get_payload_size(uint32_t page_size) {
@@ -18,7 +19,11 @@ uint32_t page_get_payload_size(uint32_t page_size) {
 }
 
 bool page_can_fit_payload(Page *self, uint32_t payload_size) {
-    return page_get_payload_available_space(self) >= payload_size;
+    return page_get_payload_available_space(self) >= (int32_t) payload_size;
+}
+
+bool page_can_fit_any_payload(Page *self) {
+    return page_get_payload_available_space(self) > 0;
 }
 
 page_index_t page_get_item_continuation(Page *self, Item *item) {

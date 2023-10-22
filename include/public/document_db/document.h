@@ -59,3 +59,5 @@ Result document_delete_node(Document *self, DeleteNodeRequest *request);
 Result document_update_node(Document *self, UpdateNodeRequest *request);
 
 Result document_get_all_children(Document *self, GetAllChildrenRequest *request, GetAllChildrenResult *result);
+
+double document_get_insertion_time_ms();

@@ -123,7 +123,7 @@ Result page_add_item(Page *self, ItemPayload payload, page_index_t continues_on_
     ASSERT_ARG_NOT_NULL(self)
     ASSERT_ARG_NOT_NULL(item_add_result)
 
-    if (payload.size > page_get_payload_available_space(self)) {
+    if ((int32_t) payload.size > page_get_payload_available_space(self)) {
         LOG_ERR("Add failed. Page: %d, Available space: %d, payload size: %d", self->page_header.page_id.id,
                 page_get_payload_available_space(self), payload.size);
         ABORT_EXIT(INTERNAL_LIB_ERROR, "Can't add item to this page. Not enough space for metadata")

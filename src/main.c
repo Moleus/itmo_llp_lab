@@ -3,7 +3,7 @@
 // main
 unsigned char log_level = DEBUG;
 
-int process_document() {// create document.
+int process_document(void) {// create document.
     CreateNodeRequest string_req = {
         .parent = NULL_NODE_ID,
         .value = (NodeValue) {

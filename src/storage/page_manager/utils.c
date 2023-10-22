@@ -63,3 +63,10 @@ size_t convert_to_file_offset(PageManager *self, page_index_t page_id, size_t of
     return page_manager_get_page_offset(self, page_id) + offset_in_page;
 }
 
+int32_t min(int32_t a, int32_t b) {
+    return a < b ? a : b;
+}
+
+int32_t max(int32_t a, int32_t b) {
+    return a > b ? a : b;
+}

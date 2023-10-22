@@ -18,3 +18,5 @@ typedef struct Page Page;
 size_t page_size(Page *self);
 
 bool page_can_fit_payload(Page *self, uint32_t payload_size);
+
+bool page_can_fit_any_payload(Page *self);

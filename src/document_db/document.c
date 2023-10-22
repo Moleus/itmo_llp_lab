@@ -1,8 +1,17 @@
 #include <assert.h>
 #include "private/document_db/document.h"
 #include "private/storage/page_manager.h"
+#include <time.h>
 
 #define FILE_SIGNATURE 0x12345678
+
+clock_t g_insert_start_time = 0;
+clock_t g_insert_end_time = 0;
+
+double document_get_insertion_time_ms() {
+    double insertion_time = ((double) (g_insert_end_time - g_insert_start_time)) / CLOCKS_PER_SEC * 1000;
+    return insertion_time;
+}
 
 Document *document_new() {
     Document *document = malloc(sizeof(Document));
@@ -32,6 +41,8 @@ Result document_persist_new_node(Document *self, Node *node) {
     ASSERT_ARG_NOT_NULL(self)
     ASSERT_ARG_NOT_NULL(node)
 
+    g_insert_start_time = clock();
+
     ItemPayload itemPayload = {
             .data = node,
             .size = sizeof(Node)
@@ -47,6 +58,8 @@ Result document_persist_new_node(Document *self, Node *node) {
 
     node->id = (node_id_t) {.page_id = page->page_header.page_id.id, .item_id = item_result.metadata.item_id.id};
     page_manager_free_pages(self->page_manager);
+
+    g_insert_end_time = clock();
 
     return OK;
 }

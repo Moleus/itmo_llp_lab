@@ -61,13 +61,18 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
         assert(current_page != NULL);
         page_index_t continue_on_page = NULL_PAGE_INDEX;
         Page *free_page = NULL;
-        uint32_t payload_size = payload.size - bytes_written;
-        if (page_can_fit_payload(current_page, payload_size) == false) {
+        int32_t payload_size = (int32_t) payload.size - (int32_t) bytes_written;
+        if (page_can_fit_any_payload(current_page) == false) {
+            // can't place even part of a payload
+            Result res = page_manager_get_new_free_page(self, &free_page);
+            current_page = free_page;
+            ABORT_IF_FAIL(res, "Failed to allocate one more page for payload that can't suite page")
+        } else if (page_can_fit_payload(current_page, payload_size) == false) {
             // early allocate next page
             Result res = page_manager_get_new_free_page(self, &free_page);
             ABORT_IF_FAIL(res, "Failed to allocate one more page for large payload")
             continue_on_page = free_page->page_header.page_id;
-            payload_size = page_get_payload_available_space(current_page);
+            payload_size = min(page_get_payload_available_space(current_page), payload_size);
         }
         ItemPayload payload_to_write = {
                 // TODO: can add pointers?
