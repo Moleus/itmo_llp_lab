@@ -46,6 +46,12 @@ jobs:
           export CC=clang
           cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -S . -B build
           cmake --build ./build --config Debug --parallel 4
+      - name: Store resulting binary
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-folder
+          path: |
+            build
 #      - name: Setup Ninja
 #        uses: ashutoshvarma/setup-ninja@v1.1
 #        with:
