@@ -41,7 +41,8 @@ TEST(test_file, test_file_read) {
     file_open(file, FILE_PATH);
     Result res = file_read(file, buf, 2, 2);
     assert_ok(res);
-    ASSERT_STREQ("st", buf);
+    ASSERT_EQ(buf[0], 's');
+    ASSERT_EQ(buf[1], 't');
     res = file_close(file);
     assert_ok(res);
     file_destroy(file);
