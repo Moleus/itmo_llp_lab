@@ -8,9 +8,17 @@
 clock_t g_insert_start_time = 0;
 clock_t g_insert_end_time = 0;
 
-double document_get_insertion_time_ms() {
+clock_t g_delete_start_time = 0;
+clock_t g_delete_end_time = 0;
+
+double document_get_insertion_time_ms(void) {
     double insertion_time = ((double) (g_insert_end_time - g_insert_start_time)) / CLOCKS_PER_SEC * 1000;
     return insertion_time;
+}
+
+double document_get_deletion_time_ms(void) {
+    double deletion_time = ((double) (g_delete_end_time - g_delete_start_time)) / CLOCKS_PER_SEC * 1000;
+    return deletion_time;
 }
 
 Document *document_new() {
@@ -150,6 +158,7 @@ Result document_delete_node(Document *self, DeleteNodeRequest *request) {
         }
     }
     item_iterator_destroy(items_it);
+    g_delete_start_time = clock();
     items_it = page_manager_get_items(self->page_manager, &item);
     // find our node
     while (item_iterator_has_next(items_it)) {
@@ -166,6 +175,7 @@ Result document_delete_node(Document *self, DeleteNodeRequest *request) {
     }
     item_iterator_destroy(items_it);
 
+    g_delete_end_time = clock();
     // didn't find node
     return ERROR("Node doesn't exist in document tree");
 }

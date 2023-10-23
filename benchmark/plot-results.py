@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 
-file_path = "../cmake-build-debug-clang14/benchmark/benchmark.csv"
+file_path = "../cmake-build-debug-system/benchmark/benchmark.csv"
 
 def plot_results():
     # read csv file

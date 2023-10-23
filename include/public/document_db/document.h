@@ -60,4 +60,6 @@ Result document_update_node(Document *self, UpdateNodeRequest *request);
 
 Result document_get_all_children(Document *self, GetAllChildrenRequest *request, GetAllChildrenResult *result);
 
-double document_get_insertion_time_ms();
+double document_get_insertion_time_ms(void);
+
+double document_get_deletion_time_ms(void);

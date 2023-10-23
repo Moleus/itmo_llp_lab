@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include "public/document_db/node.h"
 #include "public/document_db/document.h"
+#include <unistd.h>
 
 unsigned char log_level = WARN;
 
@@ -28,20 +29,20 @@ long get_file_size(const char *filename) {
 }
 
 #define BATCH_SIZE 20
-#define MAX_MEASUREMENTS 1000
+#define MAX_MEASUREMENTS 300
 #define DB_FILE "benchmark-data.llp"
 #define PAGE_SIZE 512
 
-node_id_t g_used_ids[MAX_MEASUREMENTS * BATCH_SIZE];
+node_id_t g_used_ids[BATCH_SIZE + 1];
 
 // page_id, item_id
-long g_indirect_index_in_used_ids[MAX_MEASUREMENTS * BATCH_SIZE][PAGE_SIZE / sizeof(ItemMetadata)];
 long g_used_ids_count = 0;
 NodeValue g_node_variants[4];
 
 Node generate_random_node(void) {
     NodeValue node_value = g_node_variants[(rand() / 3) % 4];
-    node_id_t parent_id = g_used_ids[(rand() / 3) % g_used_ids_count];
+//    node_id_t parent_id = g_used_ids[(rand() / 3) % g_used_ids_count];
+    node_id_t parent_id = ROOT_NODE_ID;
 
     Node node = (Node) {.parent_id = parent_id, .value = node_value};
     return node;
@@ -58,17 +59,22 @@ CreateNodeRequest wrap_node(Node node) {
     return request;
 }
 
-void insert_node(Document *doc, Node node) {
+node_id_t insert_node(Document *doc, Node node) {
     Node result;
     CreateNodeRequest req = wrap_node(node);
     document_add_node(doc, &req, &result);
-    g_used_ids[g_used_ids_count++] = result.id;
+    return result.id;
 }
 
 void delete_node(Document *doc, Node node) {
     DeleteNodeRequest req = (DeleteNodeRequest) {.node = &node};
     document_delete_node(doc, &req);
 }
+
+struct TimeResults {
+    double insert_time;
+    double delete_time;
+};
 
 //1. Сделать тест, где вставки и удаления происходят вперемешку (500 вставок, 200 удалений)
 //- каждая вставка в случайное место
@@ -77,14 +83,25 @@ void delete_node(Document *doc, Node node) {
 //t = time()
 //write * 100
 //dt = time() - t
-double insert_test(Document *doc) {
-    double floating_average_time = 0;
+struct TimeResults insert_delete_test(Document *doc) {
+    double avg_insert_time = 0;
+    double avg_delete_time = 0;
+    g_used_ids_count = 0;
     for (int i = 0; i < BATCH_SIZE; i++) {
-        insert_node(doc, generate_random_node());
+        node_id_t id = insert_node(doc, generate_random_node());
+        g_used_ids[g_used_ids_count++] = id;
         double insert_time = document_get_insertion_time_ms();
-        floating_average_time = (floating_average_time * i + insert_time) / (i + 1);
+        avg_insert_time = (avg_insert_time * i + insert_time) / (i + 1);
     }
-    return floating_average_time;
+
+    for (int i = 0; i < BATCH_SIZE / 2; ++i) {
+        node_id_t id = g_used_ids[i];
+        delete_node(doc, (Node) {.id = id});
+        double delete_time = document_get_deletion_time_ms();
+        avg_delete_time = (avg_delete_time * i + delete_time) / (i + 1);
+    }
+
+    return (struct TimeResults) {.insert_time = avg_insert_time, .delete_time = avg_delete_time};
 }
 
 
@@ -94,7 +111,8 @@ Document *prepare(void) {
     g_node_variants[2] = (NodeValue) {.type = STRING, .string_value = {"Hey!!!", .length = 6}};
     g_node_variants[3] = (NodeValue) {.type = BOOL, .bool_value = true};
 
-    if (remove(DB_FILE) != 0) {
+    bool file_exists = access(DB_FILE, F_OK) == 0;
+    if (file_exists && remove(DB_FILE) != 0) {
         LOG_ERR("Failed to remove file %s", DB_FILE);
         exit(1);
     }
@@ -103,25 +121,28 @@ Document *prepare(void) {
     insert_node(doc, gen_root_node());
     return doc;
 }
+
 /*
  * Collects data about the memory usage and file size over loop and writes it to a csv file.
  * Metrics to collect: insert_time, delete_time, mem_usage, file_size
  */
 int main(void) {
     FILE *fp;
-    const char* filename = "benchmark.csv";
+    const char *filename = "benchmark.csv";
     fp = fopen(filename, "w");
     fprintf(fp, "row,insert_time,delete_time,mem_usage,file_size\n");
-    long file_size = 0;
-    long mem_usage = 0;
+    long file_size;
+    long mem_usage;
 
     Document *doc = prepare();
 
     for (int i = 0; i < MAX_MEASUREMENTS; i++) {
-        double insert_time = insert_test(doc);
+        struct TimeResults time_results = insert_delete_test(doc);
+        double insert_time = time_results.insert_time;
+        double delete_time = time_results.delete_time;
         mem_usage = get_mem_usage();
         file_size = get_file_size(DB_FILE);
-        fprintf(fp, "%d,%f,%f,%ld,%ld\n", i, insert_time, 0.0, mem_usage, file_size);
+        fprintf(fp, "%d,%f,%f,%ld,%ld\n", i, insert_time, delete_time, mem_usage, file_size);
     }
     fclose(fp);
     return 0;
