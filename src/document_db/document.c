@@ -11,6 +11,8 @@ clock_t g_insert_end_time = 0;
 clock_t g_delete_start_time = 0;
 clock_t g_delete_end_time = 0;
 
+Result document_delete_second_step(Document *self, DeleteNodeRequest *request);
+
 double document_get_insertion_time_ms(void) {
     double insertion_time = ((double) (g_insert_end_time - g_insert_start_time)) / CLOCKS_PER_SEC * 1000;
     return insertion_time;
@@ -60,7 +62,7 @@ Result document_persist_new_node(Document *self, Node *node) {
     Result res = page_manager_get_page_for_data(self->page_manager, &page);
     RETURN_IF_FAIL(res, "failed to persist new data")
 
-    ItemAddResult item_result;
+    ItemAddResult item_result = {0};
     res = page_manager_put_item(self->page_manager, page, itemPayload, &item_result);
     RETURN_IF_FAIL(res, "failed to persist new data")
 
@@ -158,7 +160,15 @@ Result document_delete_node(Document *self, DeleteNodeRequest *request) {
         }
     }
     item_iterator_destroy(items_it);
+    return document_delete_second_step(self, request);
+
+}
+
+Result document_delete_second_step(Document *self, DeleteNodeRequest *request) {
     g_delete_start_time = clock();
+
+    ItemIterator* items_it = NULL;
+    Item item = {0};
     items_it = page_manager_get_items(self->page_manager, &item);
     // find our node
     while (item_iterator_has_next(items_it)) {
@@ -171,6 +181,7 @@ Result document_delete_node(Document *self, DeleteNodeRequest *request) {
             Result res = page_manager_delete_item(self->page_manager, page, &item);
             ABORT_IF_FAIL(res, "failed to delete node");
             item_iterator_destroy(items_it);
+            return OK;
         }
     }
     item_iterator_destroy(items_it);

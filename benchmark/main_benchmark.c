@@ -29,28 +29,27 @@ long get_file_size(const char *filename) {
 }
 
 #define BATCH_SIZE 20
-#define MAX_MEASUREMENTS 300
+#define MAX_MEASUREMENTS 3
 #define DB_FILE "benchmark-data.llp"
 #define PAGE_SIZE 512
 
-node_id_t g_used_ids[BATCH_SIZE + 1];
+node_id_t g_used_ids[BATCH_SIZE + 1] = {0};
 
 // page_id, item_id
 long g_used_ids_count = 0;
-NodeValue g_node_variants[4];
 
-Node generate_random_node(void) {
-    NodeValue node_value = g_node_variants[(rand() / 3) % 4];
+Node generate_random_node(NodeValue node_variants[4]) {
+    NodeValue node_value = node_variants[(rand() / 3) % 4];
 //    node_id_t parent_id = g_used_ids[(rand() / 3) % g_used_ids_count];
     node_id_t parent_id = ROOT_NODE_ID;
 
-    Node node = (Node) {.parent_id = parent_id, .value = node_value};
+    Node node = (Node) {.parent_id = parent_id, .value = node_value, .id = NULL_NODE_ID};
     return node;
 }
 
-Node gen_root_node(void) {
-    NodeValue node_value = g_node_variants[(rand() / 3) % 4];
-    Node node = (Node) {.parent_id = NULL_NODE_ID, .value = node_value};
+Node gen_root_node(NodeValue node_variants[4]) {
+    NodeValue node_value = node_variants[(rand() / 3) % 4];
+    Node node = (Node) {.parent_id = NULL_NODE_ID, .value = node_value, .id = ROOT_NODE_ID};
     return node;
 }
 
@@ -60,14 +59,14 @@ CreateNodeRequest wrap_node(Node node) {
 }
 
 node_id_t insert_node(Document *doc, Node node) {
-    Node result;
+    Node result = {0};
     CreateNodeRequest req = wrap_node(node);
     document_add_node(doc, &req, &result);
     return result.id;
 }
 
-void delete_node(Document *doc, Node node) {
-    DeleteNodeRequest req = (DeleteNodeRequest) {.node = &node};
+void delete_node(Document *doc, Node *node) {
+    DeleteNodeRequest req = (DeleteNodeRequest) {.node = node};
     document_delete_node(doc, &req);
 }
 
@@ -83,12 +82,12 @@ struct TimeResults {
 //t = time()
 //write * 100
 //dt = time() - t
-struct TimeResults insert_delete_test(Document *doc) {
+struct TimeResults insert_delete_test(Document *doc, NodeValue node_variants[4]) {
     double avg_insert_time = 0;
     double avg_delete_time = 0;
     g_used_ids_count = 0;
     for (int i = 0; i < BATCH_SIZE; i++) {
-        node_id_t id = insert_node(doc, generate_random_node());
+        node_id_t id = insert_node(doc, generate_random_node(node_variants));
         g_used_ids[g_used_ids_count++] = id;
         double insert_time = document_get_insertion_time_ms();
         avg_insert_time = (avg_insert_time * i + insert_time) / (i + 1);
@@ -96,7 +95,9 @@ struct TimeResults insert_delete_test(Document *doc) {
 
     for (int i = 0; i < BATCH_SIZE / 2; ++i) {
         node_id_t id = g_used_ids[i];
-        delete_node(doc, (Node) {.id = id});
+        Node node = {0};
+        node.id = id;
+        delete_node(doc, &node);
         double delete_time = document_get_deletion_time_ms();
         avg_delete_time = (avg_delete_time * i + delete_time) / (i + 1);
     }
@@ -105,12 +106,7 @@ struct TimeResults insert_delete_test(Document *doc) {
 }
 
 
-Document *prepare(void) {
-    g_node_variants[0] = (NodeValue) {.type = INT_32, .int_value = 42};
-    g_node_variants[1] = (NodeValue) {.type = DOUBLE, .double_value = 5.555};
-    g_node_variants[2] = (NodeValue) {.type = STRING, .string_value = {"Hey!!!", .length = strlen("Hey!!!")}};
-    g_node_variants[3] = (NodeValue) {.type = BOOL, .bool_value = true};
-
+Document *prepare(NodeValue node_variants[4]) {
     bool file_exists = access(DB_FILE, F_OK) == 0;
     if (file_exists && remove(DB_FILE) != 0) {
         LOG_ERR("Failed to remove file %s", DB_FILE);
@@ -118,7 +114,7 @@ Document *prepare(void) {
     }
     Document *doc = document_new();
     document_init(doc, DB_FILE, PAGE_SIZE);
-    insert_node(doc, gen_root_node());
+    insert_node(doc, gen_root_node(node_variants));
     return doc;
 }
 
@@ -127,17 +123,23 @@ Document *prepare(void) {
  * Metrics to collect: insert_time, delete_time, mem_usage, file_size
  */
 int main(void) {
-    FILE *fp;
+    FILE *fp = NULL;
     const char *filename = "benchmark.csv";
     fp = fopen(filename, "w");
     fprintf(fp, "row,insert_time,delete_time,mem_usage,file_size\n");
     long file_size;
     long mem_usage;
 
-    Document *doc = prepare();
+    NodeValue node_variants[4] = {0};
+    String str = {"Hey!!!", .length = strlen("Hey!!!")};
+    node_variants[0] = (NodeValue) {.type = INT_32, .int_value = 42};
+    node_variants[1] = (NodeValue) {.type = DOUBLE, .double_value = 5.555};
+    node_variants[2] = (NodeValue) {.type = STRING, .string_value = str};
+    node_variants[3] = (NodeValue) {.type = BOOL, .bool_value = true};
+    Document *doc = prepare(node_variants);
 
     for (int i = 0; i < MAX_MEASUREMENTS; i++) {
-        struct TimeResults time_results = insert_delete_test(doc);
+        struct TimeResults time_results = insert_delete_test(doc, node_variants);
         double insert_time = time_results.insert_time;
         double delete_time = time_results.delete_time;
         mem_usage = get_mem_usage();
@@ -145,5 +147,6 @@ int main(void) {
         fprintf(fp, "%d,%f,%f,%ld,%ld\n", i, insert_time, delete_time, mem_usage, file_size);
     }
     fclose(fp);
+    document_destroy(doc);
     return 0;
 }

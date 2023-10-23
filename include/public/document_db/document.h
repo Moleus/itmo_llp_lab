@@ -44,7 +44,7 @@ typedef struct {
     Node nodes[];
 } GetAllChildrenResult;
 
-Document *document_new();
+Document *document_new(void);
 
 Result document_init(Document *self, const char *file_path, size_t page_size);
 

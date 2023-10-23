@@ -10,9 +10,10 @@
 #endif
 
 FileState * file_new(void) {
-    FileState *fs = malloc(sizeof(FileState));
+    FileState *fs = calloc(1, sizeof(FileState));
     ASSERT_NOT_NULL(fs, FAILED_TO_ALLOCATE_MEMORY)
     fs->is_open = false;
+    fs->file = NULL;
     return fs;
 }
 
