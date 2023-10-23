@@ -11,9 +11,10 @@ extern "C" {
 #define SIGNATURE 0x12345678
 
 ItemPayload get_payload() {
+    const char *data = "test data";
     ItemPayload payload = {
-            .size = 8,
-            .data = (uint8_t *) "\x00\x01\x02\x03\x04\x05\x06\x07"
+            .size = static_cast<uint32_t>(strlen(data)),
+            .data = (void *) data
     };
     return payload;
 }
@@ -33,8 +34,8 @@ TEST(test_page_manager, test_page_manager) {
     ItemAddResult result;
     page_manager_put_item(pm, page, payload, &result);
     ASSERT_EQ(result.metadata.item_id.id, 0);
-    ASSERT_EQ(result.metadata.size, 8);
-    ASSERT_EQ(result.metadata.data_offset, PAGE_SIZE - 8);
+    ASSERT_EQ(result.metadata.size, payload.size);
+    ASSERT_EQ(result.metadata.data_offset, PAGE_SIZE - payload.size);
     ASSERT_EQ(result.metadata_offset_in_page, sizeof(PageHeader));
 
     page_manager_destroy(pm);
@@ -44,8 +45,8 @@ TEST(test_page_manager, test_page_manager) {
     ASSERT_EQ(res.status, RES_OK);
     page_manager_put_item(pm, page, payload, &result);
     ASSERT_EQ(result.metadata.item_id.id, 1);
-    ASSERT_EQ(result.metadata.size, 8);
-    ASSERT_EQ(result.metadata.data_offset, PAGE_SIZE - 8 * 2);
+    ASSERT_EQ(result.metadata.size, payload.size);
+    ASSERT_EQ(result.metadata.data_offset, PAGE_SIZE - payload.size * 2);
     ASSERT_EQ(result.metadata_offset_in_page, sizeof(PageHeader) + sizeof(ItemMetadata));
     remove_file();
 }
@@ -61,7 +62,7 @@ TEST(test_page_manager, test_add_after_delete) {
     page_manager_put_item(pm, page_manager_get_current_free_page(pm), payload, &add_result1);
     page_manager_put_item(pm, page_manager_get_current_free_page(pm), payload, &add_result2);
     Item item;
-    uint8_t payload_buffer[8];
+    uint8_t payload_buffer[payload.size];
     Result res = page_manager_get_item(pm, pm->current_free_page, add_result1.metadata.item_id, payload_buffer, &item);
     ASSERT_EQ(res.status, RES_OK);
     res = page_manager_delete_item(pm, pm->current_free_page, &item);
@@ -69,7 +70,7 @@ TEST(test_page_manager, test_add_after_delete) {
     ASSERT_EQ(pm->current_free_page->page_header.items_count, 1);
     ASSERT_EQ(pm->current_free_page->page_header.free_space_start_offset,
               sizeof(PageHeader) + sizeof(ItemMetadata) * 2);
-    ASSERT_EQ(pm->current_free_page->page_header.free_space_end_offset, PAGE_SIZE - 8 * 2);
+    ASSERT_EQ(pm->current_free_page->page_header.free_space_end_offset, PAGE_SIZE - payload.size * 2);
     ASSERT_EQ(pm->current_free_page->page_header.next_item_id.id, 2);
     ASSERT_EQ(item.is_deleted, true);
     remove_file();

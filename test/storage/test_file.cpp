@@ -35,11 +35,11 @@ TEST(test_file, test_file_read) {
     FileState *file = file_new();
     // manually write to file
     FILE *fd = fopen(FILE_PATH, "w");
-    fwrite("test", 4, 1, fd);
+    fwrite("test", strlen("test"), 1, fd);
     fclose(fd);
-    char buf[2];
+    char buf[strlen("st")];
     file_open(file, FILE_PATH);
-    Result res = file_read(file, buf, 2, 2);
+    Result res = file_read(file, buf, 2, strlen("st"));
     assert_ok(res);
     ASSERT_EQ(buf[0], 's');
     ASSERT_EQ(buf[1], 't');

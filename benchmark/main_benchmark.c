@@ -108,7 +108,7 @@ struct TimeResults insert_delete_test(Document *doc) {
 Document *prepare(void) {
     g_node_variants[0] = (NodeValue) {.type = INT_32, .int_value = 42};
     g_node_variants[1] = (NodeValue) {.type = DOUBLE, .double_value = 5.555};
-    g_node_variants[2] = (NodeValue) {.type = STRING, .string_value = {"Hey!!!", .length = 6}};
+    g_node_variants[2] = (NodeValue) {.type = STRING, .string_value = {"Hey!!!", .length = strlen("Hey!!!")}};
     g_node_variants[3] = (NodeValue) {.type = BOOL, .bool_value = true};
 
     bool file_exists = access(DB_FILE, F_OK) == 0;
