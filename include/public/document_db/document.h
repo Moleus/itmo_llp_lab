@@ -8,7 +8,6 @@ typedef struct {
     Node *root_node;
     PageManager *page_manager;
     bool init_done;
-    uint
 } Document;
 
 typedef struct {
@@ -45,7 +44,7 @@ typedef struct {
     Node nodes[];
 } GetAllChildrenResult;
 
-Document *document_new();
+Document *document_new(void);
 
 Result document_init(Document *self, const char *file_path, size_t page_size);
 
@@ -60,3 +59,7 @@ Result document_delete_node(Document *self, DeleteNodeRequest *request);
 Result document_update_node(Document *self, UpdateNodeRequest *request);
 
 Result document_get_all_children(Document *self, GetAllChildrenRequest *request, GetAllChildrenResult *result);
+
+double document_get_insertion_time_ms(void);
+
+double document_get_deletion_time_ms(void);

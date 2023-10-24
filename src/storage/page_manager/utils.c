@@ -22,6 +22,12 @@ page_index_t page_manager_get_last_page_id(PageManager *self) {
 Page *page_manager_get_current_free_page(PageManager *self) {
     ASSERT_ARG_NOT_NULL(self)
 
+    if (self->current_free_page == NULL) {
+        page_index_t free_page_id = page_id(self->file_manager->header.dynamic.current_free_page);
+        Result res = page_manager_read_page(self, free_page_id, &self->current_free_page);
+        ABORT_IF_FAIL(res, "Failed to read current free page from disk");
+    }
+    LOG_DEBUG("Get current free page %d", self->current_free_page->page_header.page_id.id);
     return self->current_free_page;
 }
 
@@ -57,3 +63,12 @@ size_t convert_to_file_offset(PageManager *self, page_index_t page_id, size_t of
     return page_manager_get_page_offset(self, page_id) + offset_in_page;
 }
 
+#ifndef _WIN32
+int32_t min(int32_t a, int32_t b) {
+    return a < b ? a : b;
+}
+
+int32_t max(int32_t a, int32_t b) {
+    return a > b ? a : b;
+}
+#endif

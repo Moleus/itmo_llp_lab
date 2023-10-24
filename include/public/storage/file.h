@@ -4,7 +4,7 @@
 
 typedef struct FileState FileState;
 
-FileState * file_new();
+FileState * file_new(void);
 
 void file_destroy(FileState *fs);
 
@@ -18,4 +18,4 @@ Result file_read(FileState *fs, void *data, size_t offset, size_t size);
 
 bool file_is_open(FileState *fs);
 
-Result file_get_file_size(FileState *fs, size_t *file_size);
+Result file_get_file_size(FileState *fs, uint32_t *file_size);

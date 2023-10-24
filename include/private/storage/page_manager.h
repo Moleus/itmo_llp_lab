@@ -7,9 +7,9 @@
 // in-memory objects
 struct PageManager{
     FileManager *file_manager;
-    AllocatedPage *meta_pages;
+    AllocatedPage *allocated_pages;
     // represents amount of pages loaded in ram
-    int32_t pages_in_memory;
+    uint32_t allocated_pages_count;
     //TODO: check usage of pages_count.
     // keep track of free page
     Page* current_free_page;
@@ -69,3 +69,12 @@ uint8_t *item_iterator_allocate_payload(ItemIterator *self, size_t size);
 void item_iterator_free_payloads(ItemIterator *self);
 
 Result page_manager_calculate_large_item_size(PageManager *self, Page *page, item_index_t item_id, uint32_t *result);
+
+Page *page_manager_allocate_page(PageManager *self, page_index_t id);
+void page_manager_free_pages(PageManager *self);
+
+#ifndef _WIN32
+int32_t min(int32_t a, int32_t b);
+
+int32_t max(int32_t a, int32_t b);
+#endif

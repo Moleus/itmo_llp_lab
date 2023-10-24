@@ -5,6 +5,8 @@ extern "C" {
 #include "public/storage/file.h"
 }
 
+#define FILE_PATH "test.llp"
+
 void assert_ok(Result res) {
     Result expected = (Result) {.status = RES_OK, .message = nullptr};
     ASSERT_STREQ(res.message, expected.message);
@@ -19,34 +21,37 @@ TEST(test_file, test_file_new) {
 
 TEST(test_file, test_file_open) {
     FileState *file = file_new();
-    Result res = file_open(file, "/tmp/test_file.txt");
+    Result res = file_open(file, FILE_PATH);
     assert_ok(res);
     ASSERT_EQ(file_is_open(file), true);
     res = file_close(file);
     assert_ok(res);
     ASSERT_EQ(file_is_open(file), false);
     file_destroy(file);
+    remove(FILE_PATH);
 }
 
 TEST(test_file, test_file_read) {
     FileState *file = file_new();
     // manually write to file
-    FILE *fd = fopen("/tmp/test_file.txt", "w");
-    fwrite("test", sizeof(char), 4, fd);
+    FILE *fd = fopen(FILE_PATH, "w");
+    fwrite("test", strlen("test"), 1, fd);
     fclose(fd);
-    char buf[2];
-    file_open(file, "/tmp/test_file.txt");
-    Result res = file_read(file, buf, 2, 2);
+    char buf[strlen("st")];
+    file_open(file, FILE_PATH);
+    Result res = file_read(file, buf, 2, strlen("st"));
     assert_ok(res);
-    ASSERT_STREQ("st", buf);
+    ASSERT_EQ(buf[0], 's');
+    ASSERT_EQ(buf[1], 't');
     res = file_close(file);
     assert_ok(res);
     file_destroy(file);
+    remove(FILE_PATH);
 }
 
 TEST(test_file, test_file_write) {
     FileState *file = file_new();
-    file_open(file, "/tmp/test_file.txt");
+    file_open(file, FILE_PATH);
     uint8_t buf[] = {0xBE, 0xAF, 0xBA, 0xBE};
     Result res = file_write(file, buf, 0, sizeof(buf));
     assert_ok(res);
@@ -61,4 +66,5 @@ TEST(test_file, test_file_write) {
     res = file_close(file);
     assert_ok(res);
     file_destroy(file);
+    remove(FILE_PATH);
 }

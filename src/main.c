@@ -1,9 +1,9 @@
 #include "public/document_db/document.h"
 
 // main
-unsigned char log_level = WARN;
+unsigned char log_level = DEBUG;
 
-int process_document() {// create document.
+int process_document(void) {// create document.
     CreateNodeRequest string_req = {
         .parent = NULL_NODE_ID,
         .value = (NodeValue) {
@@ -57,7 +57,7 @@ int process_document() {// create document.
 int main(int argc, char const *argv[])
 {
     // 1000 times
-    for (int i = 0; i < 1000; ++i) {
+    for (int i = 0; i < 10; ++i) {
         process_document();
     }
 }

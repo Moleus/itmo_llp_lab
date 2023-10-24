@@ -1,7 +1,8 @@
 #include "private/storage/file_manager.h"
+#include "private/storage/file.h"
 #include "private/storage/page.h"
 
-FileManager *file_manager_new() {
+FileManager *file_manager_new(void) {
     FileManager *fm = malloc(sizeof(FileManager));
     ASSERT_NOT_NULL(fm, FAILED_TO_ALLOCATE_MEMORY)
     FileState *fs = file_new();
@@ -28,13 +29,19 @@ Result file_manager_init(FileManager *self, const char *filename, FileHeaderCons
     Result res = file_manager_open(self, filename);
     RETURN_IF_FAIL(res, "Failed to open file")
 
-    LOG_INFO("Init file. new: %b. size: %d. Writing header", self->file->is_new, self->file->size);
-    if (self->file->is_new || self->file->size == 0) {
+    LOG_INFO("Init file. new: %d. size: %d. Writing header", self->file->is_new, self->file->size);
+    if (self->file->size == 1) {
+        uint8_t data = 0;
+        file_read(self->file, &data, 0, 1);
+        LOG_INFO("Small file contents: %hhu", data);
+    }
+    if (self->file->is_new || self->file->size < sizeof(FileHeader)) {
         self->header.constants = header_for_new_file;
         self->header.dynamic.file_size = sizeof(FileHeader);
         self->header.dynamic.current_free_page = 0;
         self->header.dynamic.page_count = 0;
         res = file_manager_write_header(self);
+        LOG_DEBUG("File is new. Writing header", "");
         RETURN_IF_FAIL(res, "Failed to write file header")
     } else {
         res = file_manager_read_header(self);

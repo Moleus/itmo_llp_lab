@@ -1,18 +1,11 @@
 #include "private/storage/file.h"
 #include <assert.h>
 
-#ifdef WINDOWS
-#include <io.h>
-#define F_OK 0
-#define access _access
-#else
-#include <unistd.h>
-#endif
-
-FileState * file_new() {
-    FileState *fs = malloc(sizeof(FileState));
+FileState * file_new(void) {
+    FileState *fs = calloc(1, sizeof(FileState));
     ASSERT_NOT_NULL(fs, FAILED_TO_ALLOCATE_MEMORY)
     fs->is_open = false;
+    fs->file = NULL;
     return fs;
 }
 
@@ -38,7 +31,7 @@ Result file_open(FileState *fs, const char *filename) {
             return ERROR("Failed to close file");
         }
     }
-    FILE *file = fopen(filename, "r+b");
+    FILE *file = fopen(filename, "rb+");
     RETURN_IF_NULL(file, "Can't open file")
 
     fs->file = file;
@@ -70,11 +63,11 @@ Result file_write(FileState *fs, void *data, size_t offset, size_t size) {
     if (res != 0) {
         return ERROR("Failed to set file offset");
     }
-    // TODO: can we write more than 1 byte? (size > 1)
-    size_t written = fwrite(data, sizeof(char), size, fs->file);
-    if (written != size) {
+    size_t written = fwrite(data, size, 1, fs->file);
+    if (written == 0) {
         return ERROR("Failed to write to file");
     }
+    fflush(fs->file);
     return OK;
 }
 
@@ -87,8 +80,8 @@ Result file_read(FileState *fs, void *data, size_t offset, size_t size) {
     if (res != 0) {
         return ERROR("Failed to set file offset");
     }
-    size_t read = fread(data, sizeof(char), size, fs->file);
-    if (read != size) {
+    size_t read = fread(data, size, 1, fs->file);
+    if (read == 0) {
         return ERROR("Failed to read from file");
     }
     return OK;
@@ -100,7 +93,7 @@ bool file_is_open(FileState *fs) {
     return fs->is_open;
 }
 
-Result file_get_file_size(FileState *fs, size_t *file_size) {
+Result file_get_file_size(FileState *fs, uint32_t *file_size) {
     ASSERT_ARG_NOT_NULL(fs)
     ASSERT_ARG_NOT_NULL(file_size)
 

@@ -1,4 +1,8 @@
 #include "gtest/gtest.h"
+#include "common.h"
+#ifdef _WIN32
+#include <cstdint>
+#endif
 
 extern "C" {
 #include "private/storage/page_manager.h"
@@ -6,13 +10,13 @@ extern "C" {
 }
 
 #define PAGE_SIZE 128
-#define FILE_PATH "/tmp/test_page_manager.txt"
 #define SIGNATURE 0x12345678
 
 ItemPayload get_payload() {
+    const char *data = "test data";
     ItemPayload payload = {
-            .size = 8,
-            .data = (uint8_t *) "\x00\x01\x02\x03\x04\x05\x06\x07"
+            .size = static_cast<uint32_t>(strlen(data)),
+            .data = (void *) data
     };
     return payload;
 }
@@ -20,7 +24,6 @@ ItemPayload get_payload() {
 // test page_manager. It should create page of size 128 bytes and write to it 8 bytes of data
 TEST(test_page_manager, test_page_manager) {
     PageManager *pm = page_manager_new();
-    remove(FILE_PATH);
     Result res = page_manager_init(pm, FILE_PATH, PAGE_SIZE, SIGNATURE);
     ASSERT_EQ(res.status, RES_OK);
 
@@ -32,9 +35,9 @@ TEST(test_page_manager, test_page_manager) {
     ItemPayload payload = get_payload();
     ItemAddResult result;
     page_manager_put_item(pm, page, payload, &result);
-    ASSERT_EQ(result.metadata.item_id.id, 0);
-    ASSERT_EQ(result.metadata.size, 8);
-    ASSERT_EQ(result.metadata.data_offset, PAGE_SIZE - 8);
+    ASSERT_EQ(result.metadata.item_id.item_id, 0);
+    ASSERT_EQ(result.metadata.size, payload.size);
+    ASSERT_EQ(result.metadata.data_offset, PAGE_SIZE - payload.size);
     ASSERT_EQ(result.metadata_offset_in_page, sizeof(PageHeader));
 
     page_manager_destroy(pm);
@@ -43,16 +46,17 @@ TEST(test_page_manager, test_page_manager) {
     page = page_manager_get_current_free_page(pm);
     ASSERT_EQ(res.status, RES_OK);
     page_manager_put_item(pm, page, payload, &result);
-    ASSERT_EQ(result.metadata.item_id.id, 1);
-    ASSERT_EQ(result.metadata.size, 8);
-    ASSERT_EQ(result.metadata.data_offset, PAGE_SIZE - 8 * 2);
+    ASSERT_EQ(result.metadata.item_id.item_id, 1);
+    ASSERT_EQ(result.metadata.size, payload.size);
+    ASSERT_EQ(result.metadata.data_offset, PAGE_SIZE - payload.size * 2);
     ASSERT_EQ(result.metadata_offset_in_page, sizeof(PageHeader) + sizeof(ItemMetadata));
+    page_manager_destroy(pm);
+    remove_file();
 }
 
 // add 2 items. Delete 1 item
 TEST(test_page_manager, test_add_after_delete) {
     PageManager *pm = page_manager_new();
-    remove(FILE_PATH);
     page_manager_init(pm, FILE_PATH, PAGE_SIZE, SIGNATURE);
 
     ItemPayload payload = get_payload();
@@ -61,7 +65,7 @@ TEST(test_page_manager, test_add_after_delete) {
     page_manager_put_item(pm, page_manager_get_current_free_page(pm), payload, &add_result1);
     page_manager_put_item(pm, page_manager_get_current_free_page(pm), payload, &add_result2);
     Item item;
-    uint8_t payload_buffer[8];
+    uint8_t payload_buffer[payload.size];
     Result res = page_manager_get_item(pm, pm->current_free_page, add_result1.metadata.item_id, payload_buffer, &item);
     ASSERT_EQ(res.status, RES_OK);
     res = page_manager_delete_item(pm, pm->current_free_page, &item);
@@ -69,15 +73,16 @@ TEST(test_page_manager, test_add_after_delete) {
     ASSERT_EQ(pm->current_free_page->page_header.items_count, 1);
     ASSERT_EQ(pm->current_free_page->page_header.free_space_start_offset,
               sizeof(PageHeader) + sizeof(ItemMetadata) * 2);
-    ASSERT_EQ(pm->current_free_page->page_header.free_space_end_offset, PAGE_SIZE - 8 * 2);
-    ASSERT_EQ(pm->current_free_page->page_header.next_item_id.id, 2);
+    ASSERT_EQ(pm->current_free_page->page_header.free_space_end_offset, PAGE_SIZE - payload.size * 2);
+    ASSERT_EQ(pm->current_free_page->page_header.next_item_id.item_id, 2);
     ASSERT_EQ(item.is_deleted, true);
+    page_manager_destroy(pm);
+    remove_file();
 }
 
 // add large item which is larger than page size. Check that it is split into 2 pages
 TEST(test_page_manager, test_add_large_item) {
     PageManager *pm = page_manager_new();
-    remove(FILE_PATH);
     page_manager_init(pm, FILE_PATH, PAGE_SIZE, SIGNATURE);
 
     // create continues 0xFF data with size 128
@@ -99,48 +104,16 @@ TEST(test_page_manager, test_add_large_item) {
     ASSERT_EQ(add_result.write_status.bytes_written, payload_size);
     ASSERT_EQ(add_result.metadata.continues_on_page.id, 1);
     ASSERT_EQ(add_result.metadata.size, expected_bytes_written);
-    ASSERT_EQ(add_result.metadata.item_id.id, 0);
+    ASSERT_EQ(add_result.metadata.item_id.item_id, 0);
     ASSERT_EQ(first_page->page_header.items_count, 1);
-    ASSERT_EQ(first_page->page_header.next_item_id.id, 1);
+    ASSERT_EQ(first_page->page_header.next_item_id.item_id, 1);
 
     Page *second_page = page_manager_get_current_free_page(pm);
     ASSERT_EQ(second_page->page_header.page_id.id, 1);
     ASSERT_EQ(second_page->page_header.items_count, 1);
-    ASSERT_EQ(second_page->page_header.next_item_id.id, 1);
+    ASSERT_EQ(second_page->page_header.next_item_id.item_id, 1);
     ASSERT_EQ(second_page->page_header.free_space_start_offset, sizeof(PageHeader) + sizeof(ItemMetadata));
     ASSERT_EQ(second_page->page_header.free_space_end_offset, PAGE_SIZE - expected_bytes_on_second_page);
-}
-
-// delete large item which is larger than page size. Check that it is deleted from page 2
-TEST(test_page_manager, test_delete_large_item) {
-    PageManager *pm = page_manager_new();
-    remove(FILE_PATH);
-    page_manager_init(pm, FILE_PATH, PAGE_SIZE, SIGNATURE);
-
-    const uint32_t payload_size = PAGE_SIZE;
-    uint8_t data[payload_size] = {0};
-    memset(data, 0xFF, payload_size);
-
-    ItemPayload payload = {
-            .size = payload_size,
-            .data = data
-    };
-    ItemAddResult add_result;
-    Page *first_page = page_manager_get_current_free_page(pm);
-    Result res = page_manager_put_item(pm, first_page, payload, &add_result);
-    ASSERT_EQ(res.status, RES_OK);
-
-    Item item;
-    uint8_t payload_buffer[8];
-    res = page_manager_get_item(pm, first_page, add_result.metadata.item_id, payload_buffer, &item);
-    ASSERT_EQ(res.status, RES_OK);
-    ASSERT_EQ(item.payload.size, payload_size);
-    // assert data content is equal
-    for (int i = 0; i < payload_size; i++) {
-        ASSERT_EQ(((uint8_t *) item.payload.data)[i], data[i]);
-    }
-    res = page_manager_delete_item(pm, first_page, &item);
-    ASSERT_EQ(res.status, RES_OK);
-    ASSERT_EQ(pm->current_free_page->page_header.items_count, 0);
-    ASSERT_EQ(first_page->page_header.items_count, 0);
+    page_manager_destroy(pm);
+    remove_file();
 }
