@@ -73,6 +73,8 @@ Result page_manager_calculate_large_item_size(PageManager *self, Page *page, ite
 Page *page_manager_allocate_page(PageManager *self, page_index_t id);
 void page_manager_free_pages(PageManager *self);
 
+#ifndef _WIN32
 int32_t min(int32_t a, int32_t b);
 
 int32_t max(int32_t a, int32_t b);
+#endif
