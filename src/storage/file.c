@@ -1,14 +1,6 @@
 #include "private/storage/file.h"
 #include <assert.h>
 
-#ifdef WINDOWS
-#include <io.h>
-#define F_OK 0
-#define access _access
-#else
-#include <unistd.h>
-#endif
-
 FileState * file_new(void) {
     FileState *fs = calloc(1, sizeof(FileState));
     ASSERT_NOT_NULL(fs, FAILED_TO_ALLOCATE_MEMORY)

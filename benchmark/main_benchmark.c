@@ -3,12 +3,7 @@
 #include <sys/stat.h>
 #include "public/document_db/node.h"
 #include "public/document_db/document.h"
-
-#ifdef __linux__
-#include <unistd.h>
-#else
-#include <io.h>
-#endif
+#include "private/storage/file.h"
 
 unsigned char log_level = WARN;
 
