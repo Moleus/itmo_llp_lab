@@ -1,6 +1,8 @@
 #include "gtest/gtest.h"
-#include <cstdint>
 #include "common.h"
+#ifdef _WIN32
+#include <cstdint>
+#endif
 
 extern "C" {
 #include "private/storage/page_manager.h"
@@ -48,6 +50,7 @@ TEST(test_page_manager, test_page_manager) {
     ASSERT_EQ(result.metadata.size, payload.size);
     ASSERT_EQ(result.metadata.data_offset, PAGE_SIZE - payload.size * 2);
     ASSERT_EQ(result.metadata_offset_in_page, sizeof(PageHeader) + sizeof(ItemMetadata));
+    page_manager_destroy(pm);
     remove_file();
 }
 
@@ -73,6 +76,7 @@ TEST(test_page_manager, test_add_after_delete) {
     ASSERT_EQ(pm->current_free_page->page_header.free_space_end_offset, PAGE_SIZE - payload.size * 2);
     ASSERT_EQ(pm->current_free_page->page_header.next_item_id.item_id, 2);
     ASSERT_EQ(item.is_deleted, true);
+    page_manager_destroy(pm);
     remove_file();
 }
 
@@ -110,5 +114,6 @@ TEST(test_page_manager, test_add_large_item) {
     ASSERT_EQ(second_page->page_header.next_item_id.item_id, 1);
     ASSERT_EQ(second_page->page_header.free_space_start_offset, sizeof(PageHeader) + sizeof(ItemMetadata));
     ASSERT_EQ(second_page->page_header.free_space_end_offset, PAGE_SIZE - expected_bytes_on_second_page);
+    page_manager_destroy(pm);
     remove_file();
 }
