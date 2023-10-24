@@ -28,19 +28,17 @@ long get_file_size(const char *filename) {
     return st.st_size;
 }
 
+#define SEED 42
 #define BATCH_SIZE 20
-#define MAX_MEASUREMENTS 3
+#define MAX_MEASUREMENTS 100
 #define DB_FILE "benchmark-data.llp"
-#define PAGE_SIZE 512
+#define PAGE_SIZE 80
 
-node_id_t g_used_ids[BATCH_SIZE + 1] = {0};
-
+// растет на 122
 // page_id, item_id
-long g_used_ids_count = 0;
 
 Node generate_random_node(NodeValue node_variants[4]) {
     NodeValue node_value = node_variants[(rand() / 3) % 4];
-//    node_id_t parent_id = g_used_ids[(rand() / 3) % g_used_ids_count];
     node_id_t parent_id = ROOT_NODE_ID;
 
     Node node = (Node) {.parent_id = parent_id, .value = node_value, .id = NULL_NODE_ID};
@@ -61,13 +59,15 @@ CreateNodeRequest wrap_node(Node node) {
 node_id_t insert_node(Document *doc, Node node) {
     Node result = {0};
     CreateNodeRequest req = wrap_node(node);
-    document_add_node(doc, &req, &result);
+    Result res = document_add_node(doc, &req, &result);
+    ABORT_IF_FAIL(res, "Failed to insert node");
     return result.id;
 }
 
 void delete_node(Document *doc, Node *node) {
     DeleteNodeRequest req = (DeleteNodeRequest) {.node = node};
-    document_delete_node(doc, &req);
+    Result res = document_delete_node(doc, &req);
+    ABORT_IF_FAIL(res, "Failed to delete node");
 }
 
 struct TimeResults {
@@ -85,16 +85,17 @@ struct TimeResults {
 struct TimeResults insert_delete_test(Document *doc, NodeValue node_variants[4]) {
     double avg_insert_time = 0;
     double avg_delete_time = 0;
-    g_used_ids_count = 0;
+    long used_ids_count = 0;
+    node_id_t used_ids[BATCH_SIZE + 1] = {0};
     for (int i = 0; i < BATCH_SIZE; i++) {
         node_id_t id = insert_node(doc, generate_random_node(node_variants));
-        g_used_ids[g_used_ids_count++] = id;
+        used_ids[used_ids_count++] = id;
         double insert_time = document_get_insertion_time_ms();
         avg_insert_time = (avg_insert_time * i + insert_time) / (i + 1);
     }
 
     for (int i = 0; i < BATCH_SIZE / 2; ++i) {
-        node_id_t id = g_used_ids[i];
+        node_id_t id = used_ids[i];
         Node node = {0};
         node.id = id;
         delete_node(doc, &node);
@@ -129,6 +130,7 @@ int main(void) {
     fprintf(fp, "row,insert_time,delete_time,mem_usage,file_size\n");
     long file_size;
     long mem_usage;
+    srand(SEED);
 
     NodeValue node_variants[4] = {0};
     String str = {"Hey!!!", .length = strlen("Hey!!!")};
@@ -146,6 +148,7 @@ int main(void) {
         file_size = get_file_size(DB_FILE);
         fprintf(fp, "%d,%f,%f,%ld,%ld\n", i, insert_time, delete_time, mem_usage, file_size);
     }
+    fflush(fp);
     fclose(fp);
     document_destroy(doc);
     return 0;

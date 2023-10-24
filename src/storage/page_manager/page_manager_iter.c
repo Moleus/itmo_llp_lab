@@ -37,7 +37,8 @@ Result page_iterator_next(PageIterator *self, Page **result) {
     if (!page_iterator_has_next(self)) {
         ABORT_EXIT(INTERNAL_LIB_ERROR, "No more pages in iterator")
     }
-
+    // clear pages
+    page_manager_free_pages(self->page_manager);
     // TODO: check that it works
     Result get_page_res = page_manager_read_page(self->page_manager, self->next_page_id, result);
     RETURN_IF_FAIL(get_page_res, "Failed to get page by id")
@@ -56,8 +57,8 @@ ItemIterator *item_iterator_new(PageManager *page_manager, Item *reusable_memory
     struct AllocatedPayload *allocated_payloads = calloc(1, sizeof(struct AllocatedPayload));
 
     PageIterator *page_iterator = page_manager_get_pages(page_manager);
-    *reusable_memory = (Item) {.is_deleted = true, .index_in_page.id = -1, .payload = {.data = NULL, .size = 0}};
-    *item_it = (ItemIterator) {.page_iterator = page_iterator, .current_item = reusable_memory, .current_item_index = {-1}, .allocated_payloads = allocated_payloads, .allocated_payloads_count = 0};
+    *reusable_memory = (Item) {.is_deleted = true, .id.item_id = -1, .payload = {.data = NULL, .size = 0}};
+    *item_it = (ItemIterator) {.page_iterator = page_iterator, .current_item = reusable_memory, .current_item_index = {.item_id=-1, .page_id=page_id(-1)}, .allocated_payloads = allocated_payloads, .allocated_payloads_count = 0};
     return item_it;
 }
 
@@ -80,7 +81,7 @@ bool item_iterator_has_next(ItemIterator *self) {
     }
     // Если текущая страница не пустая
     // проблема, когда мы нашли следующую страницу и перешли на нее. Тогда наш индекс больше чем следующий айтем
-    if (next_item(self->current_item_index).id < cur_page->page_header.next_item_id.id) {
+    if (next_item(self->current_item_index).item_id < cur_page->page_header.next_item_id.item_id) {
         // TODO: работает ли это, когда мы удаляем айтемы со страницы?
         // Скорее всего да, т.к за next_item_id не должно быть удаленных элементов
         return true;
@@ -99,12 +100,12 @@ bool item_iterator_has_next(ItemIterator *self) {
             if (cur_page->page_header.items_count == 1 && cur_item_metadata->continues_on_page.id == page_get_id(cur_page).id) {
                 // Если на странице только 1 элемент и он продолжается на следующей странице - то это не отдельный элемент
                 LOG_DEBUG("ItemIterator - Page %d has only one element and it's continuation of %d", page_get_id(cur_page).id,
-                          self->current_item_index.id);
+                          self->current_item_index.item_id);
                 continue;
             }
             LOG_DEBUG("ItemIterator - found item on page %d", cur_page->page_header.page_id.id);
             // если мы нашли следующую страницу, то обнуляем индес
-            self->current_item_index.id = -1;
+            self->current_item_index.item_id = -1;
             return true;
         }
     }
@@ -155,20 +156,23 @@ Result item_iterator_next(ItemIterator *self, Item *result) {
 
     item_index_t old_item_index = self->current_item_index;
     Page *cur_page = self->page_iterator->current_page;
-    int32_t new_item_index = ++self->current_item_index.id;
+    int32_t new_item_index = ++self->current_item_index.item_id;
 
-    if (new_item_index > cur_page->page_header.next_item_id.id) {
+    old_item_index.page_id = page_get_id(cur_page);
+    item_index_t new_item = next_item(old_item_index);
+
+    if (new_item.item_id > cur_page->page_header.next_item_id.item_id) {
         LOG_ERR("Page: %d. Next item %d is on next page", cur_page, new_item_index);
         ABORT_EXIT(INTERNAL_LIB_ERROR, "It should not be possible because has_next sets current_page or returns false")
     }
 
     uint32_t payload_size;
     Result res = page_manager_calculate_large_item_size(self->page_iterator->page_manager, cur_page,
-                                                                   next_item(old_item_index), &payload_size);
+                                                                   new_item, &payload_size);
     RETURN_IF_FAIL(res, "Failed to calculate large item size");
     uint8_t *buffer = item_iterator_allocate_payload(self, payload_size);
 
-    res = page_manager_get_item(self->page_iterator->page_manager, cur_page, next_item(old_item_index), buffer,
+    res = page_manager_get_item(self->page_iterator->page_manager, cur_page, new_item, buffer,
                                        result);
     assert(result->payload.size == payload_size);
     RETURN_IF_FAIL(res, "Failed to get item from page")

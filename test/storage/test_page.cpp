@@ -24,13 +24,13 @@ TEST(test_page, page_add_item) {
     const ItemAddResult expected = {
         .metadata_offset_in_page = sizeof(PageHeader),
         .metadata = {
-            .item_id = item_id(0),
+            .item_id = item_id(page->page_header.page_id, 0),
             .data_offset = size - payload_size,
             .size = payload_size
         },
     };
     EXPECT_EQ(result.metadata_offset_in_page, expected.metadata_offset_in_page);
-    EXPECT_EQ(result.metadata.item_id.id, expected.metadata.item_id.id);
+    EXPECT_EQ(result.metadata.item_id.item_id, expected.metadata.item_id.item_id);
     EXPECT_EQ(result.metadata.data_offset, expected.metadata.data_offset);
     EXPECT_EQ(result.metadata.size, expected.metadata.size);
 

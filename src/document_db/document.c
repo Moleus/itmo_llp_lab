@@ -66,7 +66,7 @@ Result document_persist_new_node(Document *self, Node *node) {
     res = page_manager_put_item(self->page_manager, page, itemPayload, &item_result);
     RETURN_IF_FAIL(res, "failed to persist new data")
 
-    node->id = (node_id_t) {.page_id = page->page_header.page_id.id, .item_id = item_result.metadata.item_id.id};
+    node->id = (node_id_t) {.page_id = item_result.metadata.item_id.page_id.id, .item_id = item_result.metadata.item_id.item_id};
     page_manager_free_pages(self->page_manager);
 
     g_insert_end_time = clock();
@@ -174,19 +174,19 @@ Result document_delete_second_step(Document *self, DeleteNodeRequest *request) {
     while (item_iterator_has_next(items_it)) {
         Result get_item_res = item_iterator_next(items_it, &item);
         RETURN_IF_FAIL(get_item_res, "failed to delete node")
-        Node *tmp_node = item.payload.data;
-        if (node_id_eq(tmp_node->id, request->node->id)) {
+        item_index_t item_id = item.id;
+        if (item_id.page_id.id == request->node->id.page_id && item_id.item_id == request->node->id.item_id) {
             // We found our node
             Page *page = items_it->page_iterator->current_page;
             Result res = page_manager_delete_item(self->page_manager, page, &item);
             ABORT_IF_FAIL(res, "failed to delete node");
             item_iterator_destroy(items_it);
+            g_delete_end_time = clock();
             return OK;
         }
     }
     item_iterator_destroy(items_it);
 
-    g_delete_end_time = clock();
     // didn't find node
     return ERROR("Node doesn't exist in document tree");
 }

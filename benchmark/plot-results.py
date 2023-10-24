@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import os
 
-file_path = "../cmake-build-debug-system/benchmark/benchmark.csv"
+file_path = "../cmake-build-release-system/benchmark/benchmark.csv"
+
 
 def plot_results():
     # read csv file
@@ -18,12 +19,13 @@ def plot_results():
         plt.xlabel("batches")
         plt.ylabel(column)
         # range from 1 to columns.len
-        plt.plot(df['row'], df[column])
+        plt.plot(df["row"], df[column])
         # plt.show()
         name = column.lower().split(" ")[0] + ".png"
         if not os.path.exists("lab_bench_res"):
             os.mkdir("lab_bench_res")
         plt.savefig("lab_bench_res/" + name)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     plot_results()

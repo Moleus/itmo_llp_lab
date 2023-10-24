@@ -5,7 +5,7 @@
 
 typedef struct __attribute__((packed)) {
     const char *value;
-    size_t length;
+    uint32_t length;
 } String;
 
 typedef enum __attribute__((packed)) {
@@ -17,7 +17,7 @@ typedef enum __attribute__((packed)) {
 
 typedef struct __attribute__((packed)) {
     ValueType type;
-    union {
+    union __attribute__((packed)) {
         int32_t int_value;
         double double_value;
         String string_value;

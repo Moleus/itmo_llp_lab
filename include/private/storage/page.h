@@ -6,20 +6,6 @@
 
 #define HEADER_SIZE sizeof(PageHeader)
 
-typedef struct __attribute__((packed)) item_index_t {
-    int32_t id;
-} item_index_t;
-
-static inline item_index_t item_id(int32_t value) {
-    return (item_index_t) {.id = value};
-}
-
-static inline item_index_t next_item(item_index_t self) {
-    return (item_index_t) {.id = self.id + 1};
-}
-
-//#define NULL_ITEM (Item){.size=0, .data = NULL, .index_in_page = 0, .is_deleted = true}
-
 typedef struct __attribute__((packed)) page_index_t {
     int32_t id;
 } page_index_t;
@@ -32,6 +18,21 @@ static inline page_index_t page_id(int32_t value) {
 static inline page_index_t next_page(page_index_t self) {
     return (page_index_t) {.id = self.id + 1};
 }
+
+typedef struct __attribute__((packed)) item_index_t {
+    page_index_t page_id;
+    int32_t item_id;
+} item_index_t;
+
+static inline item_index_t item_id(page_index_t page_id, int32_t value) {
+    return (item_index_t) {.page_id = page_id, .item_id = value};
+}
+
+static inline item_index_t next_item(item_index_t self) {
+    return (item_index_t) {.page_id = self.page_id, .item_id = self.item_id + 1};
+}
+
+//#define NULL_ITEM (Item){.size=0, .data = NULL, .index_in_page = 0, .is_deleted = true}
 
 struct __attribute__((packed)) PageHeader {
     page_index_t page_id;
@@ -73,7 +74,7 @@ typedef struct __attribute__((packed)) ItemMetadata {
 
 // don't store on disk
 struct Item {
-    item_index_t index_in_page;
+    item_index_t id;
     bool is_deleted;
     ItemPayload payload;
 };

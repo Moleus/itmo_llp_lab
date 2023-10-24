@@ -33,7 +33,7 @@ TEST(test_page_manager, test_page_manager) {
     ItemPayload payload = get_payload();
     ItemAddResult result;
     page_manager_put_item(pm, page, payload, &result);
-    ASSERT_EQ(result.metadata.item_id.id, 0);
+    ASSERT_EQ(result.metadata.item_id.item_id, 0);
     ASSERT_EQ(result.metadata.size, payload.size);
     ASSERT_EQ(result.metadata.data_offset, PAGE_SIZE - payload.size);
     ASSERT_EQ(result.metadata_offset_in_page, sizeof(PageHeader));
@@ -44,7 +44,7 @@ TEST(test_page_manager, test_page_manager) {
     page = page_manager_get_current_free_page(pm);
     ASSERT_EQ(res.status, RES_OK);
     page_manager_put_item(pm, page, payload, &result);
-    ASSERT_EQ(result.metadata.item_id.id, 1);
+    ASSERT_EQ(result.metadata.item_id.item_id, 1);
     ASSERT_EQ(result.metadata.size, payload.size);
     ASSERT_EQ(result.metadata.data_offset, PAGE_SIZE - payload.size * 2);
     ASSERT_EQ(result.metadata_offset_in_page, sizeof(PageHeader) + sizeof(ItemMetadata));
@@ -71,7 +71,7 @@ TEST(test_page_manager, test_add_after_delete) {
     ASSERT_EQ(pm->current_free_page->page_header.free_space_start_offset,
               sizeof(PageHeader) + sizeof(ItemMetadata) * 2);
     ASSERT_EQ(pm->current_free_page->page_header.free_space_end_offset, PAGE_SIZE - payload.size * 2);
-    ASSERT_EQ(pm->current_free_page->page_header.next_item_id.id, 2);
+    ASSERT_EQ(pm->current_free_page->page_header.next_item_id.item_id, 2);
     ASSERT_EQ(item.is_deleted, true);
     remove_file();
 }
@@ -100,14 +100,14 @@ TEST(test_page_manager, test_add_large_item) {
     ASSERT_EQ(add_result.write_status.bytes_written, payload_size);
     ASSERT_EQ(add_result.metadata.continues_on_page.id, 1);
     ASSERT_EQ(add_result.metadata.size, expected_bytes_written);
-    ASSERT_EQ(add_result.metadata.item_id.id, 0);
+    ASSERT_EQ(add_result.metadata.item_id.item_id, 0);
     ASSERT_EQ(first_page->page_header.items_count, 1);
-    ASSERT_EQ(first_page->page_header.next_item_id.id, 1);
+    ASSERT_EQ(first_page->page_header.next_item_id.item_id, 1);
 
     Page *second_page = page_manager_get_current_free_page(pm);
     ASSERT_EQ(second_page->page_header.page_id.id, 1);
     ASSERT_EQ(second_page->page_header.items_count, 1);
-    ASSERT_EQ(second_page->page_header.next_item_id.id, 1);
+    ASSERT_EQ(second_page->page_header.next_item_id.item_id, 1);
     ASSERT_EQ(second_page->page_header.free_space_start_offset, sizeof(PageHeader) + sizeof(ItemMetadata));
     ASSERT_EQ(second_page->page_header.free_space_end_offset, PAGE_SIZE - expected_bytes_on_second_page);
     remove_file();

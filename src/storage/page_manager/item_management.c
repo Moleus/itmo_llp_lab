@@ -27,7 +27,7 @@ Result page_manager_add_part_of_item(PageManager *self, Page *page, ItemPayload 
 
     assert(item_add_result->metadata_offset_in_page >= sizeof(PageHeader));
     LOG_DEBUG("Add item %d to page %d. iSize: %d. Status: %d. Offset in Page %d. Total items: %d",
-              item_add_result->metadata.item_id.id,
+              item_add_result->metadata.item_id.item_id,
               page->page_header.page_id.id, item_add_result->metadata.size, item_add_result->write_status.complete,
               item_add_result->metadata_offset_in_page, page->page_header.items_count);
 
@@ -116,10 +116,11 @@ Result page_manager_delete_item(PageManager *self, Page *page, Item *item) {
             ABORT_IF_FAIL(res, "Delete item - Failed to get page from disk")
             // continuation of item should always be the first item in page;
             uint32_t payload_size;
-            page_manager_calculate_large_item_size(self, current_page, item_id(0), &payload_size);
+            item_index_t _item_id = item_id(current_page->page_header.page_id, 0);
+            page_manager_calculate_large_item_size(self, current_page, _item_id, &payload_size);
             uint8_t buffer[payload_size];
             LOG_DEBUG("Reading large item from page %d. Size: %d", current_page->page_header.page_id.id, payload_size);
-            res = page_manager_get_item(self, current_page, item_id(0), buffer, item_to_delete);
+            res = page_manager_get_item(self, current_page, _item_id, buffer, item_to_delete);
             ABORT_IF_FAIL(res, "Delete item - Failed to read item from page in memory")
             assert(item_to_delete->payload.size == payload_size);
         }
@@ -131,7 +132,7 @@ Result page_manager_delete_item(PageManager *self, Page *page, Item *item) {
         ABORT_IF_FAIL(res, "Failed to write page on disk")
 
         LOG_INFO("Delete item - Page %d. Item %d deleted. Items on page: %d", current_page->page_header.page_id.id,
-                 item_to_delete->index_in_page.id, page->page_header.items_count);
+                 item_to_delete->id.item_id, page->page_header.items_count);
         // continue
         current_page_idx = page_get_item_continuation(current_page, item_to_delete);
     }
@@ -147,10 +148,10 @@ Result page_manager_calculate_large_item_size(PageManager *self, Page *page, ite
     Page *current_page = page;
     page_index_t current_page_idx = page_get_id(current_page);
     Item tmp_read_item = {0};
-    tmp_read_item.index_in_page = item_id;
+    tmp_read_item.id = item_id;
     *result = 0;
 
-    LOG_DEBUG("Calculate large item size. Page: %d. Item: %d", page->page_header.page_id.id, item_id.id);
+    LOG_DEBUG("Calculate large item size. Page: %d. Item: %d", page->page_header.page_id.id, item_id.item_id);
 
     while (current_page_idx.id != NULL_PAGE_INDEX.id) {
         if (current_page_idx.id != page_get_id(page).id) {
@@ -159,10 +160,11 @@ Result page_manager_calculate_large_item_size(PageManager *self, Page *page, ite
             Result res = page_manager_read_page(self, current_page_idx, &current_page);
             ABORT_IF_FAIL(res, "Failed to get page from disk")
             // continuation of item should always be the first item in page;
-            tmp_read_item.index_in_page.id = 0;
+            tmp_read_item.id.item_id = 0;
+            tmp_read_item.id.page_id = current_page->page_header.page_id;
         }
         // persist in memory
-        Result res = page_get_item(current_page, tmp_read_item.index_in_page, &tmp_read_item);
+        Result res = page_get_item(current_page, tmp_read_item.id, &tmp_read_item);
         ABORT_IF_FAIL(res, "Failed to read item from page in memory")
 
         *result = *result + tmp_read_item.payload.size;
@@ -184,9 +186,9 @@ page_manager_get_item(PageManager *self, Page *page, item_index_t item_id, uint8
     page_index_t current_page_idx = page_get_id(current_page);
     uint32_t item_cum_size = 0;
     Item *tmp_read_item = result;
-    tmp_read_item->index_in_page = item_id;
+    tmp_read_item->id = item_id;
 
-    LOG_DEBUG("Get item. Page: %d. Item: %d", page->page_header.page_id.id, item_id.id);
+    LOG_DEBUG("Get item. Page: %d. Item: %d", page->page_header.page_id.id, item_id.item_id);
 
     int double_loop_guard = 0;
     while (current_page_idx.id != NULL_PAGE_INDEX.id) {
@@ -199,30 +201,32 @@ page_manager_get_item(PageManager *self, Page *page, item_index_t item_id, uint8
             Result res = page_manager_read_page(self, current_page_idx, &current_page);
             ABORT_IF_FAIL(res, "Failed to get page from disk")
             // continuation of item should always be the first item in page;
-            tmp_read_item->index_in_page.id = 0;
+            tmp_read_item->id.item_id = 0;
+            tmp_read_item->id.page_id = current_page->page_header.page_id;
         }
         assert(double_loop_guard <= 1);
         // persist in memory
-        Result res = page_get_item(current_page, tmp_read_item->index_in_page, tmp_read_item);
+        Result res = page_get_item(current_page, tmp_read_item->id, tmp_read_item);
         ABORT_IF_FAIL(res, "Failed to read item from page in memory")
         // TODO: sum item_cum_size and place memory in result
         uint32_t tmp_payload_size = tmp_read_item->payload.size;
         void *data = tmp_read_item->payload.data;
         LOG_DEBUG("Copying Size: %d. tmp_item_addr %p. Item Id %d. Cum size: %d",
-                  tmp_payload_size, data, tmp_read_item->index_in_page.id,
+                  tmp_payload_size, data, tmp_read_item->id.item_id,
                   item_cum_size);
 
         memcpy((void *) (payload_buffer + item_cum_size), data, tmp_payload_size);
 
         item_cum_size = item_cum_size + tmp_payload_size;
-        LOG_DEBUG("Item ID after copy: %d, item_payload_size: %d", tmp_read_item->index_in_page.id,
+        LOG_DEBUG("Item ID after copy: %d, item_payload_size: %d", tmp_read_item->id.item_id,
                   tmp_read_item->payload.size);
         // continue
         current_page_idx = page_get_item_continuation(current_page, tmp_read_item);
     }
+    result->id = item_id;
     result->payload.data = payload_buffer;
     result->payload.size = item_cum_size;
-    LOG_DEBUG("Get item finished. Page: %d. Item: %d. Size: %d", page->page_header.page_id.id, item_id.id,
+    LOG_DEBUG("Get item finished. Page: %d. Item: %d. Size: %d", page->page_header.page_id.id, item_id.item_id,
               item_cum_size);
     return OK;
 }
