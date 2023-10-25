@@ -1,7 +1,6 @@
 #include <assert.h>
 #include "private/storage/page_manager.h"
 
-//TODO: think if it's correct to include private header
 #include "private/storage/page.h"
 #include "private/storage/file_manager.h"
 
@@ -21,7 +20,6 @@ Result page_manager_init(PageManager *self, const char *filename, uint32_t page_
 
     LOG_DEBUG("PageManager - init. Struct sizes [ Page: %ld, NodeValue: %ld, ItemMetadata: %ld, Node: %ld, FileHeader: %ld, PageHeader: %ld", sizeof(Page), sizeof(NodeValue), sizeof(ItemMetadata), sizeof(Node),
               sizeof(FileHeader), sizeof(PageHeader));
-    //TODO: persist on disk page-manager's data in file-header.
     FileHeaderConstants header_for_new_file = {
             .signature = file_signature,
             .page_size = page_size

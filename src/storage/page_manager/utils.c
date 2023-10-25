@@ -1,6 +1,5 @@
 #include "private/storage/page_manager.h"
 
-//TODO: think if it's correct to include private header
 #include "private/storage/page.h"
 #include "private/storage/file_manager.h"
 

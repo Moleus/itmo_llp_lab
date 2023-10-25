@@ -25,7 +25,6 @@ Result page_manager_init(PageManager *self, const char *filename, uint32_t page_
 
 typedef struct PageIterator PageIterator;
 
-// TODO: make private
 PageIterator *page_iterator_new(PageManager *self);
 
 void page_iterator_destroy(PageIterator *self);
@@ -44,7 +43,6 @@ Result item_iterator_next(ItemIterator *self, Item *result);
 
 bool item_iterator_has_next(ItemIterator *self);
 
-// TODO: can we make this one private?
 PageIterator *page_manager_get_pages(PageManager *self);
 
 ItemIterator *page_manager_get_items(PageManager *self, Item *reusable_mem);

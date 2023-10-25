@@ -58,7 +58,6 @@ Result file_write(FileState *fs, void *data, size_t offset, size_t size) {
     ASSERT_ARG_NOT_NULL(data)
     assert(fs->is_open == true);
 
-    // TODO: check the cast to long
     int res = fseek(fs->file, (long) offset, SEEK_SET);
     if (res != 0) {
         return ERROR("Failed to set file offset");

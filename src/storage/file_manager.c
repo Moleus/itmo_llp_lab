@@ -6,7 +6,6 @@ FileManager *file_manager_new(void) {
     FileManager *fm = malloc(sizeof(FileManager));
     ASSERT_NOT_NULL(fm, FAILED_TO_ALLOCATE_MEMORY)
     FileState *fs = file_new();
-    // TODO: free self memory if fail.
     // fill dest with all fields in structure
     fm->file = fs;
     return fm;

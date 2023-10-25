@@ -25,8 +25,6 @@ static bool result_is_fail__(Result result) {
     return result.status == RES_ERROR;
 }
 
-// TODO: free self memory if fail.
-// Implement auto clean macro on fail
 #define RETURN_IF_FAIL(result, return_error_msg) \
     if (result_is_fail__(result)) {      \
         LOG_WARN("%s", (result).message);       \

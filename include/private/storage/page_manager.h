@@ -10,8 +10,6 @@ struct PageManager{
     AllocatedPage *allocated_pages;
     // represents amount of pages loaded in ram
     uint32_t allocated_pages_count;
-    //TODO: check usage of pages_count.
-    // keep track of free page
     Page* current_free_page;
 };
 

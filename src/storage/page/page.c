@@ -33,8 +33,6 @@ void page_destroy(Page *self) {
     self = NULL;
 }
 
-// TODO: change public signature so user won't know anything about id and use just pointer
-// maybe we don't even need this one
 Result page_get_item(Page *self, item_index_t item_id, Item *item) {
     ASSERT_ARG_NOT_NULL(self)
     ASSERT_ARG_NOT_NULL(item)
@@ -46,16 +44,10 @@ Result page_get_item(Page *self, item_index_t item_id, Item *item) {
     }
 
 
-    //TODO: привести все к формату, где создание item и укладываение в память будет в выделенной функции
-    // продумать, что мы будем делать, когда страница выгрузится из памяти?
-    // как возможное решение - копировать результат на уровне клиента.
-
-    // TODO: check this address magic in tests
     ItemMetadata *metadata = get_metadata(self, item_id);
     assert(metadata->is_deleted == false);
     assert(self->page_header.next_item_id.item_id > item_id.item_id);
 
-    // TODO: check that item pointer is assigned correctly
     *item = create_item(
             (ItemPayload) {.size = metadata->size, .data = get_item_data_addr(self, metadata->data_offset)},
             item_id);
@@ -150,8 +142,6 @@ Result page_delete_item(Page *self, Item *item) {
     metadata->is_deleted = true;
     self->page_header.items_count--;
     // if this was the last item in page then we can just move free space start offset
-    //TODO: test this and check data consistency. Theoretically, we don't care about payload, but headers.
-    // also, we should do defragmentation once in a time
     if (item->id.item_id == self->page_header.next_item_id.item_id - 1) {
         LOG_DEBUG("Delete item - Page %d. Deleted last item %d", self->page_header.page_id.id, item->id.item_id);
         // increase free space by removing deleted data
@@ -159,20 +149,16 @@ Result page_delete_item(Page *self, Item *item) {
         self->page_header.free_space_end_offset += metadata->size;
 
         // decrement next_item_id until we find not deleted item
-        // TODO: write updated page_header on disk
 
         self->page_header.next_item_id.item_id--;
 
         // Не дефрагментируем, т.к в больших айтемах придется менять индексы
 //        int32_t last_item_index = self->page_header.next_item_id.id--;
 //        while (self->page_header.next_item_id.id > 0 && get_metadata(self, item_id(last_item_index))->is_deleted) {
-//            // TODO: does it change actual data in memory?
 //            last_item_index = self->page_header.next_item_id.id--;
 //        }
         LOG_DEBUG("Delete item - Page %d. Updated next_item_id to %d after deletion", self->page_header.page_id.id,
                   self->page_header.next_item_id.item_id);
-        // TODO: check if we can assign null item?
-        //        *item = NULL_ITEM;
     }
 
     assert(item->is_deleted);

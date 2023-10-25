@@ -41,7 +41,6 @@ struct __attribute__((packed)) PageHeader {
     item_index_t next_item_id;
     uint32_t items_count;
     // these two fields describe a range of free space [start; end]
-    // TODO: check that number doesn't overflow on subtraction
     uint32_t free_space_start_offset;
     uint32_t free_space_end_offset;
 };

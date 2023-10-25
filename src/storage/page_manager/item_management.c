@@ -1,7 +1,6 @@
 #include <assert.h>
 #include "private/storage/page_manager.h"
 
-//TODO: think if it's correct to include private header
 #include "private/storage/page.h"
 #include "private/storage/file_manager.h"
 
@@ -75,7 +74,6 @@ Result page_manager_put_item(PageManager *self, Page *page, ItemPayload payload,
             payload_size = min(page_get_payload_available_space(current_page), payload_size);
         }
         ItemPayload payload_to_write = {
-                // TODO: can add pointers?
                 .data = (void *) ((uint8_t *) payload.data + bytes_written),
                 .size = payload_size
         };
@@ -208,7 +206,6 @@ page_manager_get_item(PageManager *self, Page *page, item_index_t item_id, uint8
         // persist in memory
         Result res = page_get_item(current_page, tmp_read_item->id, tmp_read_item);
         ABORT_IF_FAIL(res, "Failed to read item from page in memory")
-        // TODO: sum item_cum_size and place memory in result
         uint32_t tmp_payload_size = tmp_read_item->payload.size;
         void *data = tmp_read_item->payload.data;
         LOG_DEBUG("Copying Size: %d. tmp_item_addr %p. Item Id %d. Cum size: %d",

@@ -1,7 +1,6 @@
 #include <assert.h>
 #include "private/storage/page_manager.h"
 
-//TODO: think if it's correct to include private header
 #include "private/storage/page.h"
 
 PageIterator *page_iterator_new(PageManager *self) {
@@ -39,7 +38,6 @@ Result page_iterator_next(PageIterator *self, Page **result) {
     }
     // clear pages
     page_manager_free_pages(self->page_manager);
-    // TODO: check that it works
     Result get_page_res = page_manager_read_page(self->page_manager, self->next_page_id, result);
     RETURN_IF_FAIL(get_page_res, "Failed to get page by id")
     self->next_page_id.id++;
@@ -82,7 +80,6 @@ bool item_iterator_has_next(ItemIterator *self) {
     // Если текущая страница не пустая
     // проблема, когда мы нашли следующую страницу и перешли на нее. Тогда наш индекс больше чем следующий айтем
     if (next_item(self->current_item_index).item_id < cur_page->page_header.next_item_id.item_id) {
-        // TODO: работает ли это, когда мы удаляем айтемы со страницы?
         // Скорее всего да, т.к за next_item_id не должно быть удаленных элементов
         return true;
     }
@@ -180,7 +177,6 @@ Result item_iterator_next(ItemIterator *self, Item *result) {
 }
 
 // To top-level function which should be used to get items and pages
-// TODO: do we need to get pages? If not - remove this method
 PageIterator *page_manager_get_pages(PageManager *self) {
     ASSERT_ARG_NOT_NULL(self)
 
