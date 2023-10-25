@@ -4,6 +4,7 @@
 #include "public/document_db/node.h"
 #include "public/document_db/document.h"
 #include "private/storage/file.h"
+#include <time.h>
 
 unsigned char log_level = WARN;
 
@@ -29,7 +30,7 @@ long get_file_size(const char *filename) {
 }
 
 #define SEED 42
-#define BATCH_SIZE 20
+#define BATCH_SIZE 500
 #define MAX_MEASUREMENTS 100
 #define DB_FILE "benchmark-data.llp"
 #define PAGE_SIZE 80
@@ -83,25 +84,40 @@ struct TimeResults {
 //write * 100
 //dt = time() - t
 struct TimeResults insert_delete_test(Document *doc, NodeValue node_variants[4]) {
+    static int counter = 0;
     double avg_insert_time = 0;
     double avg_delete_time = 0;
     long used_ids_count = 0;
     node_id_t used_ids[BATCH_SIZE + 1] = {0};
+    clock_t t = clock();
+    counter++;
     for (int i = 0; i < BATCH_SIZE; i++) {
         node_id_t id = insert_node(doc, generate_random_node(node_variants));
         used_ids[used_ids_count++] = id;
-        double insert_time = document_get_insertion_time_ms();
-        avg_insert_time = (avg_insert_time * i + insert_time) / (i + 1);
+        if (i % 100 == 0) {
+            clock_t t2 = clock();
+            double insert_time = ((double) (t2 - t)) / CLOCKS_PER_SEC * 1000;
+            t = t2;
+            printf("%d;%f\n", counter, insert_time);
+        }
     }
 
-    for (int i = 0; i < BATCH_SIZE / 2; ++i) {
+    clock_t t_del = clock();
+    for (int i = 0; i < BATCH_SIZE - 100; ++i) {
         node_id_t id = used_ids[i];
         Node node = {0};
         node.id = id;
         delete_node(doc, &node);
         double delete_time = document_get_deletion_time_ms();
         avg_delete_time = (avg_delete_time * i + delete_time) / (i + 1);
+        if (i % 100 == 0) {
+            clock_t t2 = clock();
+            double d_time = ((double) (t2 - t_del)) / CLOCKS_PER_SEC * 1000;
+            t_del = t2;
+            printf("%d;;%f\n", counter, d_time);
+        }
     }
+    fflush(stdout);
 
     return (struct TimeResults) {.insert_time = avg_insert_time, .delete_time = avg_delete_time};
 }
